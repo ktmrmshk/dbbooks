@@ -1,0 +1,13 @@
+format: jp-book
+root: intro
+parts:
+  - caption: Solution Accelerator
+    chapters:
+      - file: notebooks/solution_accel/demand_forecasting
+      - file: notebooks/solution_accel/clv_intro
+        sections:
+        - file: notebooks/solution_accel/clv/clv1
+        - file: notebooks/solution_accel/clv/clv2
+  - caption: Basic Function Demos
+    chapters:
+      - file: notebooks/demo/DeltaLakePrimer_Simple
