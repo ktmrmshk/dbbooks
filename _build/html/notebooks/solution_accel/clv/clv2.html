@@ -1,0 +1,1439 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>将来消費を推定する &#8212; Databricks Notebook Archives</title>
+    
+  <link href="../../../_static/css/theme.css" rel="stylesheet">
+  <link href="../../../_static/css/index.ff1ffe594081f20da1ef19478df9384b.css" rel="stylesheet">
+
+    
+  <link rel="stylesheet"
+    href="../../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-book-theme.css?digest=c3fdc42140077d1ad13ad2f1588a4309" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/panels-variables.06eb56fa6e07937060861dad626602ad.css" />
+    
+  <link rel="preload" as="script" href="../../../_static/js/index.be7d3bbb2ef33a8344ce.js">
+
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/togglebutton.js"></script>
+    <script src="../../../_static/clipboard.min.js"></script>
+    <script src="../../../_static/copybutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../../../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <script async="async" src="https://unpkg.com/thebe@0.5.1/lib/index.js"></script>
+    <script>
+        const thebe_selector = ".thebe"
+        const thebe_selector_input = "pre"
+        const thebe_selector_output = ".output"
+    </script>
+    <script async="async" src="../../../_static/sphinx-thebe.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="従来のデータレイクの制限と限界" href="../../demo/DeltaLakePrimer_Simple.html" />
+    <link rel="prev" title="将来のカスタマーエンゲージメントの確率を算出する" href="clv1.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="None">
+    
+
+    <!-- Google Analytics -->
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<div class="col-12 col-md-3 bd-sidebar site-navigation show" id="site-navigation">
+    
+        <div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../../../index.html">
+      
+      
+      
+      <h1 class="site-logo" id="site-title">Databricks Notebook Archives</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search this book..." aria-label="Search this book..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        <ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../../intro.html">
+   Databricks Notebook Archives
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Solution Accelerator
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../demand_forecasting.html">
+   Facebook ProphetとSparkを活用した高精度需要予測
+  </a>
+ </li>
+ <li class="toctree-l1 current active has-children">
+  <a class="reference internal" href="../clv_intro.html">
+   顧客生涯価値
+  </a>
+  <input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/>
+  <label for="toctree-checkbox-1">
+   <i class="fas fa-chevron-down">
+   </i>
+  </label>
+  <ul class="current">
+   <li class="toctree-l2">
+    <a class="reference internal" href="clv1.html">
+     将来のカスタマーエンゲージメントの確率を算出する
+    </a>
+   </li>
+   <li class="toctree-l2 current active">
+    <a class="current reference internal" href="#">
+     将来消費を推定する
+    </a>
+   </li>
+  </ul>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Basic Function Demos
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../demo/DeltaLakePrimer_Simple.html">
+   従来のデータレイクの制限と限界
+  </a>
+ </li>
+</ul>
+
+    </div>
+</nav> <!-- To handle the deprecated key -->
+
+<div class="navbar_extra_footer">
+  Powered by <a href="https://jupyterbook.org">Jupyter Book</a>
+</div>
+
+</div>
+
+
+          
+
+
+          
+<main class="col py-md-3 pl-md-4 bd-content overflow-auto" role="main">
+    
+    <div class="topbar container-xl fixed-top">
+    <div class="topbar-contents row">
+        <div class="col-12 col-md-3 bd-topbar-whitespace site-navigation show"></div>
+        <div class="col pl-md-4 topbar-main">
+            
+            <button id="navbar-toggler" class="navbar-toggler ml-0" type="button" data-toggle="collapse"
+                data-toggle="tooltip" data-placement="bottom" data-target=".site-navigation" aria-controls="navbar-menu"
+                aria-expanded="true" aria-label="Toggle navigation" aria-controls="site-navigation"
+                title="Toggle navigation" data-toggle="tooltip" data-placement="left">
+                <i class="fas fa-bars"></i>
+                <i class="fas fa-arrow-left"></i>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+            
+            
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn" aria-label="Download this page"><i
+            class="fas fa-download"></i></button>
+
+    <div class="dropdown-buttons">
+        <!-- ipynb file if we had a myst markdown file -->
+        
+        <!-- Download raw file -->
+        <a class="dropdown-buttons" href="../../../_sources/notebooks/solution_accel/clv/clv2.ipynb"><button type="button"
+                class="btn btn-secondary topbarbtn" title="Download source file" data-toggle="tooltip"
+                data-placement="left">.ipynb</button></a>
+        <!-- Download PDF via print -->
+        <button type="button" id="download-print" class="btn btn-secondary topbarbtn" title="Print to PDF"
+            onClick="window.print()" data-toggle="tooltip" data-placement="left">.pdf</button>
+    </div>
+</div>
+
+            <!-- Source interaction buttons -->
+
+<div class="dropdown-buttons-trigger">
+    <button id="dropdown-buttons-trigger" class="btn btn-secondary topbarbtn"
+        aria-label="Connect with source repository"><i class="fab fa-github"></i></button>
+    <div class="dropdown-buttons sourcebuttons">
+        <a class="repository-button"
+            href="https://github.com/ktmrmshk/dbbooks"><button type="button" class="btn btn-secondary topbarbtn"
+                data-toggle="tooltip" data-placement="left" title="Source repository"><i
+                    class="fab fa-github"></i>repository</button></a>
+        <a class="issues-button"
+            href="https://github.com/ktmrmshk/dbbooks/issues/new?title=Issue%20on%20page%20%2Fnotebooks/solution_accel/clv/clv2.html&body=Your%20issue%20content%20here."><button
+                type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip" data-placement="left"
+                title="Open an issue"><i class="fas fa-lightbulb"></i>open issue</button></a>
+        
+    </div>
+</div>
+
+            <!-- Full screen (wrap in <a> to have style consistency -->
+
+<a class="full-screen-button"><button type="button" class="btn btn-secondary topbarbtn" data-toggle="tooltip"
+        data-placement="bottom" onclick="toggleFullScreen()" aria-label="Fullscreen mode"
+        title="Fullscreen mode"><i
+            class="fas fa-expand"></i></button></a>
+
+            <!-- Launch buttons -->
+
+        </div>
+
+        <!-- Table of contents -->
+        <div class="d-none d-md-block col-md-2 bd-toc show">
+            
+            <div class="tocsection onthispage pt-5 pb-3">
+                <i class="fas fa-list"></i> Contents
+            </div>
+            <nav id="bd-toc-nav" aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#step-1">
+   Step 1: 環境の設定
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#step-2">
+   Step 2: データの探索
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#step-3">
+   Step 3: 顧客メトリックを算出する
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#step-4">
+   Step 4: 頻度と金銭的価値の独立性を検証する
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#step-5">
+   Step 5: 消費モデルを訓練する
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#step-6">
+   Step 6: 消費モデルの評価
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#step-7">
+   Step 7: 顧客生涯価値を算出する
+  </a>
+ </li>
+</ul>
+
+            </nav>
+        </div>
+    </div>
+</div>
+    <div id="main-content" class="row">
+        <div class="col-12 col-md-9 pl-md-3 pr-md-0">
+        
+              <div>
+                
+  <div class="tex2jax_ignore mathjax_ignore section" id="id1">
+<h1>将来消費を推定する<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<p>前回のノートでは、定額制ではないモデルの顧客が、時間の経過とともにどのように離脱していくかを検証しました。 小売企業と顧客の間に書面契約がない場合、顧客が継続的な関係から脱落する確率は、他の顧客と比較した過去のエンゲージメントパターンに基づいて推定するしかありません。顧客が積極的に関与し続ける確率を理解することは、それ自体が非常に価値のあることです。 しかし、さらに一歩進んで、予測される将来のエンゲージメントからどれだけの収益や利益が得られるかを計算することができます。</p>
+<p>そのためには、将来の購入イベントに関連する金銭的価値を計算するモデルを構築する必要があります。 このモデルの目的は、そのようなモデルを導き出し、生涯確率と組み合わせて推定顧客生涯価値を導き出すことです。</p>
+<div class="section" id="step-1">
+<h2>Step 1: 環境の設定<a class="headerlink" href="#step-1" title="Permalink to this headline">¶</a></h2>
+<p>これまでと同様に、クラスタに以下のライブラリを<a class="reference external" href="https://docs.databricks.com/libraries.html#workspace-libraries">インストール</a>・<a class="reference external" href="https://docs.databricks.com/libraries.html#install-a-library-on-a-cluster">アタッチ</a>する必要があります。また、クラスタのランライムには <strong>Databricks ML runtime</strong> ver 6.5以上を指定する必要があります。:</p></p>
+<ul class="simple">
+<li><p>xlrd</p></li>
+<li><p>lifetimes==0.10.1</p></li>
+<li><p>nbconvert</p></li>
+</ul>
+<p>さらに、前のノートブックと同様に、UCI Machine Learning Repositoryから入手できる<a class="reference external" href="http://archive.ics.uci.edu/ml/datasets/Online+Retail">Online Retail Data Set</a>を、 <code class="docutils literal notranslate"><span class="pre">/FileStore/tables/online_retail/</span></code>　フォルダにロードする必要があります。</p>
+<p>(訳者注: このNotebookではすでにデータ形式が利用しやすいCSV形式になっているので、xlrd, nbconvertはインストール不要になっています。)</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">pip</span> <span class="n">install</span> <span class="n">lifetimes</span><span class="o">==</span><span class="mf">0.10.1</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">sh</span>
+<span class="n">wget</span> <span class="s1">&#39;https://sajpstorage.blob.core.windows.net/demo-asset-workshop2021/Online_Retail-93ac4.csv&#39;</span>
+<span class="n">cp</span> <span class="n">Online_Retail</span><span class="o">-</span><span class="mi">93</span><span class="n">ac4</span><span class="o">.</span><span class="n">csv</span> <span class="o">/</span><span class="n">dbfs</span><span class="o">/</span><span class="n">FileStore</span><span class="o">/</span><span class="n">tables</span><span class="o">/</span><span class="n">online_retail</span><span class="o">/</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># 対象のxlsxファイルのパスを取得</span>
+<span class="n">xlsx_filename</span> <span class="o">=</span> <span class="n">dbutils</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="s1">&#39;file:///dbfs/FileStore/tables/online_retail&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="c1"># 上記ファイルのデータのスキーマを設定(既知とする)</span>
+<span class="n">orders_schema</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s1">&#39;InvoiceNo&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">str</span><span class="p">,</span>
+  <span class="s1">&#39;StockCode&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">str</span><span class="p">,</span>
+  <span class="s1">&#39;Description&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">str</span><span class="p">,</span>
+  <span class="s1">&#39;Quantity&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+<span class="c1">#  &#39;InvoiceDate&#39;:np.datetime64,</span>
+  <span class="s1">&#39;InvoiceDate&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">str</span><span class="p">,</span>
+  <span class="s1">&#39;UnitPrice&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+  <span class="s1">&#39;CustomerID&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">str</span><span class="p">,</span>
+  <span class="s1">&#39;Country&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">str</span>  
+  <span class="p">}</span>
+
+<span class="c1">#　元のファイルがCSVになっているので、そのまま読み込む</span>
+<span class="n">orders_pd</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+  <span class="n">xlsx_filename</span><span class="p">,</span> 
+  <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span>
+  <span class="c1">#sheet_name=&#39;Online Retail&#39;,</span>
+  <span class="n">header</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="c1"># 第一行目はヘッダーになっている</span>
+  <span class="n">dtype</span><span class="o">=</span><span class="n">orders_schema</span><span class="p">,</span>
+  <span class="n">parse_dates</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;InvoiceDate&#39;</span><span class="p">]</span>
+  <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>顧客の購入に関連する金銭的価値を調べるためには、オンライン小売注文データセットの各販売額を計算する必要があります。そのため、QuantityにUnitPriceを乗じて、新しいSalesAmountフィールドを作成します。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># 売上を算出: SalesAmount =  quantity * unit price</span>
+<span class="n">orders_pd</span><span class="p">[</span><span class="s1">&#39;SalesAmount&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">orders_pd</span><span class="p">[</span><span class="s1">&#39;Quantity&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">orders_pd</span><span class="p">[</span><span class="s1">&#39;UnitPrice&#39;</span><span class="p">]</span>
+
+<span class="n">orders_pd</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>上記のPandasデータをSpark上で使えるように準備する</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># データ変換: pandas DF から Spark DF　へ</span>
+<span class="n">orders</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">orders_pd</span><span class="p">)</span>
+
+<span class="c1"># SparkDFをクエリで使うために&quot;orders&quot;という名前のTemp Viewを作成</span>
+<span class="n">orders</span><span class="o">.</span><span class="n">createOrReplaceTempView</span><span class="p">(</span><span class="s1">&#39;orders&#39;</span><span class="p">)</span> 
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="step-2">
+<h2>Step 2: データの探索<a class="headerlink" href="#step-2" title="Permalink to this headline">¶</a></h2>
+<p>データセットの購入頻度のパターンを調べるには、前のノートブックのステップ2のセクションを参照してください。 ここでは、顧客の消費に関するパターンを調べたいと思います。</p>
+<p>はじめに、顧客の典型的な1日あたりの購入額を見てみましょう。 顧客生涯の計算と同様に、同じ日に複数回の購入があっても同じ購入イベントとみなすため、1日単位でグループ化します。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">sql</span> <span class="o">--</span> <span class="n">顧客毎の日毎の購入額</span>
+
+<span class="n">SELECT</span>
+  <span class="n">CustomerID</span><span class="p">,</span>
+  <span class="n">TO_DATE</span><span class="p">(</span><span class="n">InvoiceDate</span><span class="p">)</span> <span class="k">as</span> <span class="n">InvoiceDate</span><span class="p">,</span>
+  <span class="n">SUM</span><span class="p">(</span><span class="n">SalesAmount</span><span class="p">)</span> <span class="k">as</span> <span class="n">SalesAmount</span>
+<span class="n">FROM</span> <span class="n">orders</span>
+<span class="n">GROUP</span> <span class="n">BY</span> <span class="n">CustomerID</span><span class="p">,</span> <span class="n">TO_DATE</span><span class="p">(</span><span class="n">InvoiceDate</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>1日の消費額の範囲は非常に広く、1日に£70,000以上を購入する顧客もいます。背景にあるビジネスの知識がないため、この段階で支出が期待値と一致しているのか、それとも排除すべき異常値なのかを判断することはできません。</p>
+<p>また、マイナスの値が非常に多いことにも注目してください。これはリターンに関連している可能性が高いです。 この点については後ほど詳しく説明しますが、今回はサイトで観察されるアクティビティの分布を把握するために、調べる範囲を狭めます。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">sql</span> <span class="o">--</span> <span class="n">顧客毎の日毎の購入額</span> <span class="p">(</span><span class="o">+</span><span class="n">条件</span><span class="p">:</span> <span class="n">日毎の売上高</span><span class="p">:</span> <span class="mi">0</span> <span class="o">-</span> <span class="mi">2500</span><span class="n">ポンド</span><span class="p">)</span>
+
+<span class="n">SELECT</span>
+  <span class="n">CustomerID</span><span class="p">,</span>
+  <span class="n">TO_DATE</span><span class="p">(</span><span class="n">InvoiceDate</span><span class="p">)</span> <span class="k">as</span> <span class="n">InvoiceDate</span><span class="p">,</span>
+  <span class="n">SUM</span><span class="p">(</span><span class="n">SalesAmount</span><span class="p">)</span> <span class="k">as</span> <span class="n">SalesAmount</span>
+<span class="n">FROM</span> <span class="n">orders</span>
+<span class="n">GROUP</span> <span class="n">BY</span> <span class="n">CustomerID</span><span class="p">,</span> <span class="n">TO_DATE</span><span class="p">(</span><span class="n">InvoiceDate</span><span class="p">)</span>
+<span class="n">HAVING</span> <span class="n">SalesAmount</span> <span class="n">BETWEEN</span> <span class="mi">0</span> <span class="n">AND</span> <span class="mi">2500</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>この限定した範囲での1日の支出額の分布は、200 – 400ポンドを中心とし、それ以上の支出額に向かってロングテールになっています。これが正規分布（ガウス分布）でないことは明らかです。</p>
+<p>このような分布パターンは、個々の顧客の支出パターンにも見られます。購入回数の多い顧客に焦点を当てると、支出パターンは様々ですが、この右に偏ったパターンが続いていることがわかります。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">sql</span> <span class="o">--</span> <span class="n">買い物頻度による顧客ランキング</span> <span class="p">(</span><span class="n">Top5</span><span class="p">)</span>
+
+<span class="n">SELECT</span>
+  <span class="n">CustomerID</span><span class="p">,</span>
+  <span class="n">COUNT</span><span class="p">(</span><span class="n">DISTINCT</span> <span class="n">TO_DATE</span><span class="p">(</span><span class="n">InvoiceDate</span><span class="p">))</span> <span class="k">as</span> <span class="n">Frequency</span>
+<span class="n">FROM</span> <span class="n">orders</span>
+<span class="n">GROUP</span> <span class="n">BY</span> <span class="n">CustomerID</span>
+<span class="n">ORDER</span> <span class="n">BY</span> <span class="n">Frequency</span> <span class="n">DESC</span>
+<span class="n">LIMIT</span> <span class="mi">5</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>%sql -- 上記の結果から、上位3顧客の日毎の購入額の分布を調べる
+
+SELECT
+  CustomerID,
+  TO_DATE(InvoiceDate) as InvoiceDate,
+  SUM(SalesAmount) as SalesAmount
+FROM orders
+WHERE CustomerID IN (14911, 12748, 17841)
+GROUP BY CustomerID, TO_DATE(InvoiceDate)
+ORDER BY CustomerID
+</pre></div>
+</div>
+</div>
+</div>
+<p>このデータセットには、もう少し検討すべき点があります。その中でも、まずは顧客ごとの指標を算出する必要があります。</p>
+</div>
+<div class="section" id="step-3">
+<h2>Step 3: 顧客メトリックを算出する<a class="headerlink" href="#step-3" title="Permalink to this headline">¶</a></h2>
+<p>今回のデータセットには、生の取引履歴が含まれています。 前回と同様に、頻度(Frequency)、Age(T)、直近性(Recency)という顧客ごとの指標の計算が必要です。また同時に、金銭的価値の指標の算出も必要になります。:</p></p>
+<ul class="simple">
+<li><p><strong>Frequency</strong> - 観測期間中の取引(買い物)回数。ただし、初回購入は除く。つまり、(全取引回数 - 1)。日毎にカウント。つまり、同日に複数回取引があっても1回とカウントする。</p></li>
+<li><p><strong>Age (T)</strong> - 経過日数, 初めての取引発生した日から現在の日付（またはデータセットの最終の日)</p></li>
+<li><p><strong>Recency</strong> - 直近の取引があった時点のAge。つまり、初回の取引の日から直近(最後の)取引があった日までの経過日数。</p></li>
+<li><p><strong>Monetary Value</strong> - 金銭的価値。顧客がリピート購入する際の1トランザクションあたりの平均消費額(マージンやその他の金銭的価値がある場合は、それを代用することも可能です。)</p></li>
+</ul>
+<p>顧客年齢などの指標を計算する際には、データセットがいつ終了するかを考慮する必要があることに注意してください。 これらの指標を今日の日付を基準にして計算すると、誤った結果になる可能性があります。 そこで、データセットの最後の日付を特定し、それをすべての計算において「<em>今日の日付</em>」と定義します。</p>
+<p>これらのメトリクスを導き出すために、<a class="reference external" href="https://lifetimes.readthedocs.io/en/latest/lifetimes.html">lifetimesライブラリ</a>の組み込み機能を利用することができます。前のノートブックのコードと同様、呼び出されているメソッドはほぼ同じものを使用しています。唯一の違いは、金額の尺度としてSalesAmountフィールドを使用するようにメソッドで指定していることです。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">lifetimes</span>
+
+<span class="c1"># 最後のトランザクション発生日をデータセットのエンドポイント(=「今日」)と見なす。</span>
+<span class="n">current_date</span> <span class="o">=</span> <span class="n">orders_pd</span><span class="p">[</span><span class="s1">&#39;InvoiceDate&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+<span class="c1"># 必要な顧客メトリックをlifetimesライブラリを使って算出する</span>
+<span class="n">metrics_pd</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">lifetimes</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">summary_data_from_transaction_data</span><span class="p">(</span>
+    <span class="n">orders_pd</span><span class="p">,</span>
+    <span class="n">customer_id_col</span><span class="o">=</span><span class="s1">&#39;CustomerID&#39;</span><span class="p">,</span>
+    <span class="n">datetime_col</span><span class="o">=</span><span class="s1">&#39;InvoiceDate&#39;</span><span class="p">,</span>
+    <span class="n">observation_period_end</span> <span class="o">=</span> <span class="n">current_date</span><span class="p">,</span> 
+    <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span>
+    <span class="n">monetary_value_col</span><span class="o">=</span><span class="s1">&#39;SalesAmount&#39;</span>  <span class="c1"># use sales amount to determine monetary value</span>
+    <span class="p">)</span>
+  <span class="p">)</span>
+
+<span class="c1"># 最初の数行を確認する</span>
+<span class="n">metrics_pd</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>前回と同様に、大規模なデータセットを扱う際を想定して、これらの値を並列処理で計算できるようにSparkを使って同じデータセットを生成する方法を見ていきます。これには以下の2通りの方法があります。</p>
+<ol class="simple">
+<li><p>SQLステートメントを使用する方法</p></li>
+<li><p>Python(プログラマティックSQL API)を使用する方法</p></li>
+</ol>
+<p>これら2つを順に見ていきます。</p>
+<p>コードは可能な限り前のノートブックと一貫性を保つようにしましたが、金額ロジックに必要な追加ロジックは一部そうでない部分があります。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># SQL文を記述</span>
+<span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">  SELECT</span>
+<span class="s1">    a.customerid as CustomerID,</span>
+<span class="s1">    CAST(COUNT(DISTINCT a.transaction_at) - 1 as float) as frequency,</span>
+<span class="s1">    CAST(DATEDIFF(MAX(a.transaction_at), a.first_at) as float) as recency,</span>
+<span class="s1">    CAST(DATEDIFF(a.current_dt, a.first_at) as float) as T,</span>
+<span class="s1">    CASE                                              -- MONETARY VALUE CALCULATION</span>
+<span class="s1">      WHEN COUNT(DISTINCT a.transaction_at)=1 THEN 0    -- 0 if only one order</span>
+<span class="s1">      ELSE</span>
+<span class="s1">        SUM(</span>
+<span class="s1">          CASE WHEN a.first_at=a.transaction_at THEN 0  -- daily average of all but first order</span>
+<span class="s1">          ELSE a.salesamount</span>
+<span class="s1">          END</span>
+<span class="s1">          ) / (COUNT(DISTINCT a.transaction_at)-1)</span>
+<span class="s1">      END as monetary_value    </span>
+<span class="s1">  FROM ( -- customer order history</span>
+<span class="s1">    SELECT</span>
+<span class="s1">      x.customerid,</span>
+<span class="s1">      z.first_at,</span>
+<span class="s1">      x.transaction_at,</span>
+<span class="s1">      y.current_dt,</span>
+<span class="s1">      x.salesamount                  </span>
+<span class="s1">    FROM (                                            -- customer daily summary</span>
+<span class="s1">      SELECT </span>
+<span class="s1">        customerid, </span>
+<span class="s1">        TO_DATE(invoicedate) as transaction_at, </span>
+<span class="s1">        SUM(SalesAmount) as salesamount               -- SALES AMOUNT ADDED</span>
+<span class="s1">      FROM orders </span>
+<span class="s1">      GROUP BY customerid, TO_DATE(invoicedate)</span>
+<span class="s1">      ) x</span>
+<span class="s1">    CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) y                                -- current date (according to dataset)</span>
+<span class="s1">    INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) z  -- first order per customer</span>
+<span class="s1">      ON x.customerid=z.customerid</span>
+<span class="s1">    WHERE x.customerid IS NOT NULL</span>
+<span class="s1">    ) a</span>
+<span class="s1">  GROUP BY a.customerid, a.current_dt, a.first_at</span>
+<span class="s1">  ORDER BY CustomerID</span>
+<span class="s1">  &#39;&#39;&#39;</span>
+
+<span class="c1"># SQLを実行して、結果をSpark Dataframeで受ける</span>
+<span class="n">metrics_sql</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+
+<span class="c1"># 結果を確認する</span>
+<span class="n">display</span><span class="p">(</span><span class="n">metrics_sql</span><span class="p">)</span>  
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyspark.sql.functions</span> <span class="kn">import</span> <span class="n">to_date</span><span class="p">,</span> <span class="n">datediff</span><span class="p">,</span> <span class="nb">max</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="n">countDistinct</span><span class="p">,</span> <span class="n">count</span><span class="p">,</span> <span class="nb">sum</span><span class="p">,</span> <span class="n">when</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql.types</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="c1"># 有効な顧客注文を含むレコードのみを抜き出す</span>
+<span class="n">x</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">orders</span>
+      <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">CustomerID</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span>
+      <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s1">&#39;transaction_at&#39;</span><span class="p">,</span> <span class="n">to_date</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">InvoiceDate</span><span class="p">))</span>
+      <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">CustomerID</span><span class="p">,</span> <span class="s1">&#39;transaction_at&#39;</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">SalesAmount</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;salesamount&#39;</span><span class="p">))</span>   <span class="c1"># SALES AMOUNT</span>
+    <span class="p">)</span>
+
+<span class="c1"># 最後のトランザクション発生日を取得する</span>
+<span class="n">y</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">orders</span>
+    <span class="o">.</span><span class="n">groupBy</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">to_date</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">InvoiceDate</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;current_dt&#39;</span><span class="p">))</span>
+  <span class="p">)</span>
+
+
+<span class="c1"># 顧客毎の最初のトランザクション日時を算出</span>
+<span class="n">z</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">orders</span>
+    <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">CustomerID</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">to_date</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">InvoiceDate</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;first_at&#39;</span><span class="p">))</span>
+  <span class="p">)</span>
+
+
+<span class="c1"># 顧客の購入履歴を日時情報と結合させる</span>
+<span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span>
+    <span class="o">.</span><span class="n">crossJoin</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">CustomerID</span><span class="o">==</span><span class="n">z</span><span class="o">.</span><span class="n">CustomerID</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">select</span><span class="p">(</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">CustomerID</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;customerid&#39;</span><span class="p">),</span> 
+      <span class="n">z</span><span class="o">.</span><span class="n">first_at</span><span class="p">,</span> 
+      <span class="n">x</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">,</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">salesamount</span><span class="p">,</span>               <span class="c1"># SALES AMOUNT</span>
+      <span class="n">y</span><span class="o">.</span><span class="n">current_dt</span>
+      <span class="p">)</span>
+    <span class="p">)</span>
+
+<span class="c1"># 顧客毎に関連するメトリックを算出する</span>
+<span class="n">metrics_api</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span>
+           <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">customerid</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">current_dt</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">first_at</span><span class="p">)</span>
+           <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+             <span class="p">(</span><span class="n">countDistinct</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">FloatType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;frequency&#39;</span><span class="p">),</span>
+             <span class="n">datediff</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">),</span> <span class="n">a</span><span class="o">.</span><span class="n">first_at</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">FloatType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;recency&#39;</span><span class="p">),</span>
+             <span class="n">datediff</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">current_dt</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">first_at</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">FloatType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">),</span>
+             <span class="n">when</span><span class="p">(</span><span class="n">countDistinct</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>                           <span class="c1"># MONETARY VALUE</span>
+               <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span>
+                 <span class="nb">sum</span><span class="p">(</span>
+                   <span class="n">when</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">first_at</span><span class="o">==</span><span class="n">a</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+                     <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">salesamount</span><span class="p">)</span>
+                   <span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">countDistinct</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                 <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;monetary_value&#39;</span><span class="p">)</span>
+               <span class="p">)</span>
+           <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s1">&#39;customerid&#39;</span><span class="p">,</span><span class="s1">&#39;frequency&#39;</span><span class="p">,</span><span class="s1">&#39;recency&#39;</span><span class="p">,</span><span class="s1">&#39;T&#39;</span><span class="p">,</span><span class="s1">&#39;monetary_value&#39;</span><span class="p">)</span>
+           <span class="o">.</span><span class="n">orderBy</span><span class="p">(</span><span class="s1">&#39;customerid&#39;</span><span class="p">)</span>
+          <span class="p">)</span>
+
+<span class="c1"># 結果の確認</span>
+<span class="n">display</span><span class="p">(</span><span class="n">metrics_api</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>以前のように、いくつかの要約統計を使って、SQLで生成されたデータセットとlifetimesライブラリで生成されたデータセットが同じであることを確認していきましょう:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># summary data from lifetimes</span>
+<span class="n">metrics_pd</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># summary data from SQL statement</span>
+<span class="n">metrics_sql</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># summary data from pyspark.sql API</span>
+<span class="n">metrics_api</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Eこの計算を発展させて、キャリブレーション期間とホールドアウト期間の値を導き出すと、以下のようなロジックになります。:</p>
+<p>注：ここでもウィジェットを使ってホールドアウト期間の日数を定義しています。.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># ホールドアウト期間を指定するためのウィジットを定義(デフォルト: 90日)</span>
+<span class="n">dbutils</span><span class="o">.</span><span class="n">widgets</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s1">&#39;holdout days&#39;</span><span class="p">,</span> <span class="s1">&#39;90&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
+
+<span class="c1"># 最後のトランザクション発生日をデータセットのエンドポイント(=「今日」)と見なす。</span>
+<span class="n">current_date</span> <span class="o">=</span> <span class="n">orders_pd</span><span class="p">[</span><span class="s1">&#39;InvoiceDate&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+<span class="c1"># キャリブレーション期間の最終日を算出</span>
+<span class="n">holdout_days</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dbutils</span><span class="o">.</span><span class="n">widgets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;holdout days&#39;</span><span class="p">))</span>
+<span class="n">calibration_end_date</span> <span class="o">=</span> <span class="n">current_date</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span> <span class="o">=</span> <span class="n">holdout_days</span><span class="p">)</span>
+
+<span class="c1"># 必要な顧客メトリックを算出する</span>
+<span class="n">metrics_cal_pd</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">lifetimes</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">calibration_and_holdout_data</span><span class="p">(</span>
+    <span class="n">orders_pd</span><span class="p">,</span>
+    <span class="n">customer_id_col</span><span class="o">=</span><span class="s1">&#39;CustomerID&#39;</span><span class="p">,</span>
+    <span class="n">datetime_col</span><span class="o">=</span><span class="s1">&#39;InvoiceDate&#39;</span><span class="p">,</span>
+    <span class="n">observation_period_end</span> <span class="o">=</span> <span class="n">current_date</span><span class="p">,</span>
+    <span class="n">calibration_period_end</span><span class="o">=</span><span class="n">calibration_end_date</span><span class="p">,</span>
+    <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span>
+    <span class="n">monetary_value_col</span><span class="o">=</span><span class="s1">&#39;SalesAmount&#39;</span>  <span class="c1"># use sales amount to determine monetary value</span>
+    <span class="p">)</span>
+  <span class="p">)</span>
+
+<span class="c1"># 結果を数行表示して確認</span>
+<span class="n">metrics_cal_pd</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>SQLおよびPython(Spark SQL API)での実装は以下のとおりです。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">WITH CustomerHistory </span>
+<span class="s1">  AS (</span>
+<span class="s1">    SELECT  -- nesting req&#39;ed b/c can&#39;t SELECT DISTINCT on widget parameter</span>
+<span class="s1">      m.*,</span>
+<span class="s1">      getArgument(&#39;holdout days&#39;) as duration_holdout</span>
+<span class="s1">    FROM (</span>
+<span class="s1">      SELECT</span>
+<span class="s1">        x.customerid,</span>
+<span class="s1">        z.first_at,</span>
+<span class="s1">        x.transaction_at,</span>
+<span class="s1">        y.current_dt,</span>
+<span class="s1">        x.salesamount</span>
+<span class="s1">      FROM (                                            -- CUSTOMER DAILY SUMMARY</span>
+<span class="s1">        SELECT </span>
+<span class="s1">          customerid, </span>
+<span class="s1">          TO_DATE(invoicedate) as transaction_at, </span>
+<span class="s1">          SUM(SalesAmount) as salesamount </span>
+<span class="s1">        FROM orders </span>
+<span class="s1">        GROUP BY customerid, TO_DATE(invoicedate)</span>
+<span class="s1">        ) x</span>
+<span class="s1">      CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) y                                -- current date (according to dataset)</span>
+<span class="s1">      INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) z  -- first order per customer</span>
+<span class="s1">        ON x.customerid=z.customerid</span>
+<span class="s1">      WHERE x.customerid is not null</span>
+<span class="s1">      ) m</span>
+<span class="s1">  )</span>
+<span class="s1">SELECT</span>
+<span class="s1">    a.customerid as CustomerID,</span>
+<span class="s1">    a.frequency as frequency_cal,</span>
+<span class="s1">    a.recency as recency_cal,</span>
+<span class="s1">    a.T as T_cal,</span>
+<span class="s1">    COALESCE(a.monetary_value,0.0) as monetary_value_cal,</span>
+<span class="s1">    COALESCE(b.frequency_holdout, 0.0) as frequency_holdout,</span>
+<span class="s1">    COALESCE(b.monetary_value_holdout, 0.0) as monetary_value_holdout,</span>
+<span class="s1">    a.duration_holdout</span>
+<span class="s1">FROM ( -- CALIBRATION PERIOD CALCULATIONS</span>
+<span class="s1">    SELECT</span>
+<span class="s1">        p.customerid,</span>
+<span class="s1">        CAST(p.duration_holdout as float) as duration_holdout,</span>
+<span class="s1">        CAST(DATEDIFF(MAX(p.transaction_at), p.first_at) as float) as recency,</span>
+<span class="s1">        CAST(COUNT(DISTINCT p.transaction_at) - 1 as float) as frequency,</span>
+<span class="s1">        CAST(DATEDIFF(DATE_SUB(p.current_dt, int(p.duration_holdout) ), p.first_at) as float) as T,</span>
+<span class="s1">        CASE                                              -- MONETARY VALUE CALCULATION</span>
+<span class="s1">          WHEN COUNT(DISTINCT p.transaction_at)=1 THEN 0    -- 0 if only one order</span>
+<span class="s1">          ELSE</span>
+<span class="s1">            SUM(</span>
+<span class="s1">              CASE WHEN p.first_at=p.transaction_at THEN 0  -- daily average of all but first order</span>
+<span class="s1">              ELSE p.salesamount</span>
+<span class="s1">              END</span>
+<span class="s1">              ) / (COUNT(DISTINCT p.transaction_at)-1)</span>
+<span class="s1">          END as monetary_value    </span>
+<span class="s1">    FROM CustomerHistory p</span>
+<span class="s1">    WHERE p.transaction_at &lt; DATE_SUB( p.current_dt, int(p.duration_holdout) )   -- LIMIT THIS QUERY TO DATA IN THE CALIBRATION PERIOD</span>
+<span class="s1">    GROUP BY p.customerid, p.duration_holdout, p.current_dt, p.first_at</span>
+<span class="s1">  ) a</span>
+<span class="s1">LEFT OUTER JOIN ( -- HOLDOUT PERIOD CALCULATIONS</span>
+<span class="s1">  SELECT</span>
+<span class="s1">    p.customerid,</span>
+<span class="s1">    CAST(COUNT(DISTINCT p.transaction_at) as float) as frequency_holdout,</span>
+<span class="s1">    AVG(p.salesamount) as monetary_value_holdout      -- MONETARY VALUE CALCULATION</span>
+<span class="s1">  FROM CustomerHistory p</span>
+<span class="s1">  WHERE </span>
+<span class="s1">    p.transaction_at &gt;= DATE_SUB(p.current_dt, int(p.duration_holdout) ) AND  -- LIMIT THIS QUERY TO DATA IN THE HOLDOUT PERIOD</span>
+<span class="s1">    p.transaction_at &lt;= p.current_dt</span>
+<span class="s1">  GROUP BY p.customerid</span>
+<span class="s1">  ) b</span>
+<span class="s1">  ON a.customerid=b.customerid</span>
+<span class="s1">ORDER BY CustomerID</span>
+<span class="s1">&#39;&#39;&#39;</span>
+
+<span class="n">metrics_cal_sql</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">metrics_cal_sql</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyspark.sql.functions</span> <span class="kn">import</span> <span class="n">avg</span><span class="p">,</span> <span class="n">date_sub</span><span class="p">,</span> <span class="n">coalesce</span><span class="p">,</span> <span class="n">lit</span><span class="p">,</span> <span class="n">expr</span>
+
+<span class="c1"># valid customer orders</span>
+<span class="n">x</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">orders</span>
+    <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">CustomerID</span><span class="o">.</span><span class="n">isNotNull</span><span class="p">())</span>
+    <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s1">&#39;transaction_at&#39;</span><span class="p">,</span> <span class="n">to_date</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">InvoiceDate</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">CustomerID</span><span class="p">,</span> <span class="s1">&#39;transaction_at&#39;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">SalesAmount</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;salesamount&#39;</span><span class="p">))</span>
+  <span class="p">)</span>
+
+<span class="c1"># calculate last date in dataset</span>
+<span class="n">y</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">orders</span>
+    <span class="o">.</span><span class="n">groupBy</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">to_date</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">InvoiceDate</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;current_dt&#39;</span><span class="p">))</span>
+  <span class="p">)</span>
+
+<span class="c1"># calculate first transaction date by customer</span>
+<span class="n">z</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">orders</span>
+    <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">CustomerID</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">to_date</span><span class="p">(</span><span class="n">orders</span><span class="o">.</span><span class="n">InvoiceDate</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;first_at&#39;</span><span class="p">))</span>
+  <span class="p">)</span>
+
+<span class="c1"># combine customer history with date info (CUSTOMER HISTORY)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span>
+    <span class="o">.</span><span class="n">crossJoin</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">CustomerID</span><span class="o">==</span><span class="n">z</span><span class="o">.</span><span class="n">CustomerID</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;inner&#39;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s1">&#39;duration_holdout&#39;</span><span class="p">,</span> <span class="n">lit</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">dbutils</span><span class="o">.</span><span class="n">widgets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;holdout days&#39;</span><span class="p">))))</span>
+    <span class="o">.</span><span class="n">select</span><span class="p">(</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">CustomerID</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;customerid&#39;</span><span class="p">),</span>
+      <span class="n">z</span><span class="o">.</span><span class="n">first_at</span><span class="p">,</span> 
+      <span class="n">x</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">,</span> 
+      <span class="n">y</span><span class="o">.</span><span class="n">current_dt</span><span class="p">,</span> 
+      <span class="n">x</span><span class="o">.</span><span class="n">salesamount</span><span class="p">,</span>
+      <span class="s1">&#39;duration_holdout&#39;</span>
+      <span class="p">)</span>
+     <span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+    <span class="p">)</span>
+
+<span class="c1"># calculate relevant metrics by customer</span>
+<span class="c1"># note: date_sub requires a single integer value unless employed within an expr() call</span>
+<span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span>
+       <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transaction_at</span> <span class="o">&lt;</span> <span class="n">expr</span><span class="p">(</span><span class="s1">&#39;date_sub(current_dt, duration_holdout)&#39;</span><span class="p">))</span> 
+       <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">customerid</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">current_dt</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">duration_holdout</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">first_at</span><span class="p">)</span>
+       <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+         <span class="p">(</span><span class="n">countDistinct</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">FloatType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;frequency_cal&#39;</span><span class="p">),</span>
+         <span class="n">datediff</span><span class="p">(</span> <span class="nb">max</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">first_at</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">FloatType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;recency_cal&#39;</span><span class="p">),</span>
+         <span class="n">datediff</span><span class="p">(</span> <span class="n">expr</span><span class="p">(</span><span class="s1">&#39;date_sub(current_dt, duration_holdout)&#39;</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">first_at</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">FloatType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;T_cal&#39;</span><span class="p">),</span>
+         <span class="n">when</span><span class="p">(</span><span class="n">countDistinct</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+           <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span>
+             <span class="nb">sum</span><span class="p">(</span>
+               <span class="n">when</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">first_at</span><span class="o">==</span><span class="n">p</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+                 <span class="o">.</span><span class="n">otherwise</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">salesamount</span><span class="p">)</span>
+               <span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">countDistinct</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+             <span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;monetary_value_cal&#39;</span><span class="p">)</span>
+       <span class="p">)</span>
+    <span class="p">)</span>
+
+<span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span>
+      <span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">p</span><span class="o">.</span><span class="n">transaction_at</span> <span class="o">&gt;=</span> <span class="n">expr</span><span class="p">(</span><span class="s1">&#39;date_sub(current_dt, duration_holdout)&#39;</span><span class="p">))</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transaction_at</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">current_dt</span><span class="p">)</span> <span class="p">)</span>
+      <span class="o">.</span><span class="n">groupBy</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">customerid</span><span class="p">)</span>
+      <span class="o">.</span><span class="n">agg</span><span class="p">(</span>
+        <span class="n">countDistinct</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">transaction_at</span><span class="p">)</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">FloatType</span><span class="p">())</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;frequency_holdout&#39;</span><span class="p">),</span>
+        <span class="n">avg</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">salesamount</span><span class="p">)</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;monetary_value_holdout&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+   <span class="p">)</span>
+
+<span class="n">metrics_cal_api</span> <span class="o">=</span> <span class="p">(</span>
+                 <span class="n">a</span>
+                 <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">customerid</span><span class="o">==</span><span class="n">b</span><span class="o">.</span><span class="n">customerid</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+                 <span class="o">.</span><span class="n">select</span><span class="p">(</span>
+                   <span class="n">a</span><span class="o">.</span><span class="n">customerid</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;CustomerID&#39;</span><span class="p">),</span>
+                   <span class="n">a</span><span class="o">.</span><span class="n">frequency_cal</span><span class="p">,</span>
+                   <span class="n">a</span><span class="o">.</span><span class="n">recency_cal</span><span class="p">,</span>
+                   <span class="n">a</span><span class="o">.</span><span class="n">T_cal</span><span class="p">,</span>
+                   <span class="n">a</span><span class="o">.</span><span class="n">monetary_value_cal</span><span class="p">,</span>
+                   <span class="n">coalesce</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">frequency_holdout</span><span class="p">,</span> <span class="n">lit</span><span class="p">(</span><span class="mf">0.0</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;frequency_holdout&#39;</span><span class="p">),</span>
+                   <span class="n">coalesce</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">monetary_value_holdout</span><span class="p">,</span> <span class="n">lit</span><span class="p">(</span><span class="mf">0.0</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s1">&#39;monetary_value_holdout&#39;</span><span class="p">),</span>
+                   <span class="n">a</span><span class="o">.</span><span class="n">duration_holdout</span>
+                   <span class="p">)</span>
+                 <span class="o">.</span><span class="n">orderBy</span><span class="p">(</span><span class="s1">&#39;CustomerID&#39;</span><span class="p">)</span>
+              <span class="p">)</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">metrics_cal_api</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>それぞれの結果を比較する</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># summary data from lifetimes</span>
+<span class="n">metrics_cal_pd</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># summary data from SQL statement</span>
+<span class="n">metrics_cal_sql</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># summary data from pyspark.sql API</span>
+<span class="n">metrics_cal_api</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>lifetimesライブラリで計算された金銭的なホールドアウト値を注意深く見てみましょう。算出された値は、Sparkコードで算出された値よりもかなり低いことに気づくはずです。これは、lifetimesライブラリが、取引日の合計を平均する代わりに、特定の取引日の個々のラインアイテムを平均しているためです。 lifetimesライブラリの管理者にコードの変更のリクエストをしているのですが、まだ未対応のままになっています。ここでは取引日合計の平均が正しいと思われるので、このノートブックの残りの部分ではそれを使用します。</p>
+<p>lifetimesライブラリで生成される値と同じ値をSparkで生成したい場合は、以下の2つのセルを参照ください。
+ここでSQLを使用してlifetimesライブラリのロジックを再現してあります。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">WITH CustomerHistory </span>
+<span class="s1">  AS (</span>
+<span class="s1">    SELECT  -- nesting req&#39;ed b/c can&#39;t SELECT DISTINCT on widget parameter</span>
+<span class="s1">      m.*,</span>
+<span class="s1">      getArgument(&#39;holdout days&#39;) as duration_holdout</span>
+<span class="s1">    FROM (</span>
+<span class="s1">      SELECT</span>
+<span class="s1">        x.customerid,</span>
+<span class="s1">        z.first_at,</span>
+<span class="s1">        x.transaction_at,</span>
+<span class="s1">        y.current_dt,</span>
+<span class="s1">        x.salesamount</span>
+<span class="s1">      FROM (                                            -- CUSTOMER DAILY SUMMARY</span>
+<span class="s1">        SELECT </span>
+<span class="s1">          customerid, </span>
+<span class="s1">          TO_DATE(invoicedate) as transaction_at, </span>
+<span class="s1">          SUM(SalesAmount) as salesamount </span>
+<span class="s1">        FROM orders </span>
+<span class="s1">        GROUP BY customerid, TO_DATE(invoicedate)</span>
+<span class="s1">        ) x</span>
+<span class="s1">      CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) y                                -- current date (according to dataset)</span>
+<span class="s1">      INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) z  -- first order per customer</span>
+<span class="s1">        ON x.customerid=z.customerid</span>
+<span class="s1">      WHERE x.customerid is not null</span>
+<span class="s1">      ) m</span>
+<span class="s1">  )</span>
+<span class="s1">SELECT</span>
+<span class="s1">    a.customerid as CustomerID,</span>
+<span class="s1">    a.frequency as frequency_cal,</span>
+<span class="s1">    a.recency as recency_cal,</span>
+<span class="s1">    a.T as T_cal,</span>
+<span class="s1">    COALESCE(a.monetary_value,0.0) as monetary_value_cal,</span>
+<span class="s1">    COALESCE(b.frequency_holdout, 0.0) as frequency_holdout,</span>
+<span class="s1">    COALESCE(b.monetary_value_holdout, 0.0) as monetary_value_holdout,</span>
+<span class="s1">    a.duration_holdout</span>
+<span class="s1">FROM ( -- CALIBRATION PERIOD CALCULATIONS</span>
+<span class="s1">    SELECT</span>
+<span class="s1">        p.customerid,</span>
+<span class="s1">        CAST(p.duration_holdout as float) as duration_holdout,</span>
+<span class="s1">        CAST(DATEDIFF(MAX(p.transaction_at), p.first_at) as float) as recency,</span>
+<span class="s1">        CAST(COUNT(DISTINCT p.transaction_at) - 1 as float) as frequency,</span>
+<span class="s1">        CAST(DATEDIFF(DATE_SUB(p.current_dt, int(p.duration_holdout) ), p.first_at) as float) as T,</span>
+<span class="s1">        CASE                                              -- MONETARY VALUE CALCULATION</span>
+<span class="s1">          WHEN COUNT(DISTINCT p.transaction_at)=1 THEN 0    -- 0 if only one order</span>
+<span class="s1">          ELSE</span>
+<span class="s1">            SUM(</span>
+<span class="s1">              CASE WHEN p.first_at=p.transaction_at THEN 0  -- daily average of all but first order</span>
+<span class="s1">              ELSE p.salesamount</span>
+<span class="s1">              END</span>
+<span class="s1">              ) / (COUNT(DISTINCT p.transaction_at)-1)</span>
+<span class="s1">          END as monetary_value    </span>
+<span class="s1">    FROM CustomerHistory p</span>
+<span class="s1">    WHERE p.transaction_at &lt; DATE_SUB(p.current_dt, int( p.duration_holdout) )  -- LIMIT THIS QUERY TO DATA IN THE CALIBRATION PERIOD</span>
+<span class="s1">    GROUP BY p.customerid, p.duration_holdout, p.current_dt, p.first_at</span>
+<span class="s1">  ) a</span>
+<span class="s1">LEFT OUTER JOIN ( -- HOLDOUT PERIOD CALCULATIONS</span>
+<span class="s1">  SELECT</span>
+<span class="s1">    p.customerid,</span>
+<span class="s1">    CAST(COUNT(DISTINCT TO_DATE(p.invoicedate)) as float) as frequency_holdout,</span>
+<span class="s1">    AVG(p.salesamount) as monetary_value_holdout      -- MONETARY VALUE CALCULATION</span>
+<span class="s1">  FROM orders p</span>
+<span class="s1">  CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) q                                -- current date (according to dataset)</span>
+<span class="s1">  INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) r  -- first order per customer</span>
+<span class="s1">    ON p.customerid=r.customerid</span>
+<span class="s1">  WHERE </span>
+<span class="s1">    p.customerid is not null AND</span>
+<span class="s1">    TO_DATE(p.invoicedate) &gt;= DATE_SUB(q.current_dt, int( getArgument(&#39;holdout days&#39;) ) ) AND  -- LIMIT THIS QUERY TO DATA IN THE HOLDOUT PERIOD</span>
+<span class="s1">    TO_DATE(p.invoicedate) &lt;= q.current_dt</span>
+<span class="s1">  GROUP BY p.customerid</span>
+<span class="s1">  ) b</span>
+<span class="s1">  ON a.customerid=b.customerid</span>
+<span class="s1">ORDER BY CustomerID</span>
+<span class="s1">&#39;&#39;&#39;</span>
+
+<span class="n">metrics_cal_sql_alt</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">metrics_cal_sql_alt</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># lifetimesライブラリによる算出結果の統計サマリ (比較用)</span>
+<span class="n">metrics_cal_pd</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># SQLによる算出結果の統計サマリ</span>
+<span class="c1"># &quot;monetary_value_holdout&quot;はlifetmesライブラリの実装と同じ仕様にしている</span>
+<span class="n">metrics_cal_sql_alt</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>これ以降は、前回のノートブックと同様に、リピート購入がある顧客に限定して分析を行います。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># リピート購入のない顧客を除外する (全データセット対象)</span>
+<span class="n">filtered</span> <span class="o">=</span> <span class="n">metrics_api</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">metrics_api</span><span class="o">.</span><span class="n">frequency</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># リピート購入のない顧客を除外する (キャリブレーション期間を対象)</span>
+<span class="n">filtered_cal</span> <span class="o">=</span> <span class="n">metrics_cal_api</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">metrics_cal_api</span><span class="o">.</span><span class="n">frequency_cal</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>最後に、今回のデータセットに含まれる1日の合計値がマイナスになっているレコードに関しての考慮が必要になります。
+このデータセットの元となった小売業者についての文脈情報がなければ、これらのマイナス値は返品されたものだと考えられます。</p>
+<p>理想的には、返品された商品を元の購入商品と照合し、元の取引日に合わせて金額を調整することです。しかし、これを一貫して行うために必要な情報を持っていないため、マイナスのリターン値を毎日の取引合計に単純に含めることにします。これにより、1日の合計が£0以下になる場合は、その値を分析から除外します。実証実験の場以外では、これは一般的に適切ではありません。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># exclude dates with negative totals (see note above) </span>
+<span class="n">filtered</span> <span class="o">=</span> <span class="n">filtered</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">filtered</span><span class="o">.</span><span class="n">monetary_value</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">filtered_cal</span> <span class="o">=</span> <span class="n">filtered_cal</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">filtered_cal</span><span class="o">.</span><span class="n">monetary_value_cal</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="step-4">
+<h2>Step 4: 頻度と金銭的価値の独立性を検証する<a class="headerlink" href="#step-4" title="Permalink to this headline">¶</a></h2>
+<p>モデル化を進める前に、ここで採用するガンマ・ガンマモデル(前述の2つのガンマ分布にちなんで命名されている)は、顧客の購入頻度がその購入金額に影響しないことを前提としています。 これを検証することは重要で、頻度と金額の測定基準に対する単純なピアソン係数を計算することで可能になります。 今回の分析では、キャリブレーションとホールドアウトのサブセットを無視して、データセット全体に対してこれを行います。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># 相関係数(ピアソン係数)を算出</span>
+<span class="n">filtered</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="s1">&#39;frequency&#39;</span><span class="p">,</span> <span class="s1">&#39;monetary_value&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>完全に独立しているわけではありませんが、この2つの値の相関はかなり低いので、モデルのトレーニングを進めても問題ないと言えるでしょう。</p>
+</div>
+<div class="section" id="step-5">
+<h2>Step 5: 消費モデルを訓練する<a class="headerlink" href="#step-5" title="Permalink to this headline">¶</a></h2>
+<p>測定基準が確立されたので、将来のトランザクションイベントから得られる金銭的価値を推定するモデルを訓練することができます。ここで使用するモデルは、<a class="reference external" href="http://www.brucehardie.com/notes/025/gamma_gamma.pdf">Gamma-Gamma model</a>と呼ばれ、顧客集団の支出分布から得られるガンマ分布のパラメータに対して、個々の顧客の支出のガンマ分布を適合させるものです。計算は複雑ですが、lifetimesライブラリを用いて容易に算出できます。</p>
+<p>そのためにはまず、モデルが使用するL2正則化パラメータの最適な値を決定する必要があります。 そこで、前のノートブックと同様に<a class="reference external" href="http://hyperopt.github.io/hyperopt/">hyperopt</a>を使って、効果的にパラメータ探索を行います。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">hyperopt</span> <span class="kn">import</span> <span class="n">hp</span><span class="p">,</span> <span class="n">fmin</span><span class="p">,</span> <span class="n">tpe</span><span class="p">,</span> <span class="n">rand</span><span class="p">,</span> <span class="n">SparkTrials</span><span class="p">,</span> <span class="n">STATUS_OK</span><span class="p">,</span> <span class="n">space_eval</span>
+
+<span class="kn">from</span> <span class="nn">lifetimes.fitters.gamma_gamma_fitter</span> <span class="kn">import</span> <span class="n">GammaGammaFitter</span>
+
+<span class="c1"># サーチスペース(探索範囲)を定義</span>
+<span class="n">search_space</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="s1">&#39;l2&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+<span class="c1"># 評価関数を定義</span>
+<span class="k">def</span> <span class="nf">score_model</span><span class="p">(</span><span class="n">actuals</span><span class="p">,</span> <span class="n">predicted</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;mse&#39;</span><span class="p">):</span>
+  <span class="c1"># メトリック名は小文字に揃える</span>
+  <span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+  
+  <span class="c1"># 平均二乗誤差(MSE)と平均平方二乗誤差(RMSE)の場合</span>
+  <span class="k">if</span> <span class="n">metric</span><span class="o">==</span><span class="s1">&#39;mse&#39;</span> <span class="ow">or</span> <span class="n">metric</span><span class="o">==</span><span class="s1">&#39;rmse&#39;</span><span class="p">:</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">actuals</span><span class="o">-</span><span class="n">predicted</span><span class="p">))</span><span class="o">/</span><span class="n">actuals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">metric</span><span class="o">==</span><span class="s1">&#39;rmse&#39;</span><span class="p">:</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+  
+  <span class="c1"># 平均絶対誤差(MAE)の場合</span>
+  <span class="k">elif</span> <span class="n">metric</span><span class="o">==</span><span class="s1">&#39;mae&#39;</span><span class="p">:</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">actuals</span><span class="o">-</span><span class="n">predicted</span><span class="p">))</span><span class="o">/</span><span class="n">actuals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  
+  <span class="c1"># その他の場合</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="kc">None</span>
+  
+  <span class="k">return</span> <span class="n">val</span>
+
+
+<span class="c1"># モデルトレーニングおよび評価の関数を定義する</span>
+<span class="k">def</span> <span class="nf">evaluate_model</span><span class="p">(</span><span class="n">param</span><span class="p">):</span>
+  
+  <span class="c1"># &quot;input_pd&quot;データフレームのレプリカを用意</span>
+  <span class="n">data</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">value</span>
+  
+  <span class="c1"># 入力パラメータの抽出</span>
+  <span class="n">l2_reg</span> <span class="o">=</span> <span class="n">param</span>
+  
+  <span class="c1"># Gramma-Gamma-Filterモデルのインスタンス化</span>
+  <span class="n">model</span> <span class="o">=</span> <span class="n">GammaGammaFitter</span><span class="p">(</span><span class="n">penalizer_coef</span><span class="o">=</span><span class="n">l2_reg</span><span class="p">)</span>
+  
+  <span class="c1"># モデルのフィッティング(トレーニング)</span>
+  <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;frequency_cal&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;monetary_value_cal&#39;</span><span class="p">])</span>
+  
+  <span class="c1"># モデルの評価</span>
+  <span class="n">monetary_actual</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;monetary_value_holdout&#39;</span><span class="p">]</span>
+  <span class="n">monetary_predicted</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">conditional_expected_average_profit</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;frequency_holdout&#39;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;monetary_value_holdout&#39;</span><span class="p">])</span>
+  <span class="n">mse</span> <span class="o">=</span> <span class="n">score_model</span><span class="p">(</span><span class="n">monetary_actual</span><span class="p">,</span> <span class="n">monetary_predicted</span><span class="p">,</span> <span class="s1">&#39;mse&#39;</span><span class="p">)</span>
+  
+  <span class="c1"># スコアとステータスを戻り値として返す</span>
+  <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="n">mse</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="n">STATUS_OK</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Hyperoptの並列実行環境としてSparkのworkerを使用するように設定</span>
+<span class="n">spark_trials</span> <span class="o">=</span> <span class="n">SparkTrials</span><span class="p">(</span><span class="n">parallelism</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+
+<span class="c1"># Hpyeroptのパラメータ探索アルゴリズムの設定(今回はTPEを使用する)</span>
+<span class="n">algo</span> <span class="o">=</span> <span class="n">tpe</span><span class="o">.</span><span class="n">suggest</span>
+
+<span class="c1"># &quot;input_pd&quot;データフレームのコピーを各workerに配っておく</span>
+<span class="n">input_pd</span> <span class="o">=</span> <span class="n">filtered_cal</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">filtered_cal</span><span class="o">.</span><span class="n">monetary_value_cal</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">input_pd</span><span class="p">)</span>
+
+<span class="c1"># Hyper-parameter Tuningを実行 (かつ、MLflowでトラッキングする)</span>
+<span class="n">argmin</span> <span class="o">=</span> <span class="n">fmin</span><span class="p">(</span>
+  <span class="n">fn</span><span class="o">=</span><span class="n">evaluate_model</span><span class="p">,</span>
+  <span class="n">space</span><span class="o">=</span><span class="n">search_space</span><span class="p">,</span>
+  <span class="n">algo</span><span class="o">=</span><span class="n">algo</span><span class="p">,</span>
+  <span class="n">max_evals</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+  <span class="n">trials</span><span class="o">=</span><span class="n">spark_trials</span>
+  <span class="p">)</span>
+
+<span class="c1"># Broadcastしたデータをリリースする</span>
+<span class="n">inputs</span><span class="o">.</span><span class="n">unpersist</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># 最適なハイパーパラメータを表示</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">space_eval</span><span class="p">(</span><span class="n">search_space</span><span class="p">,</span> <span class="n">argmin</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>最適なL2値がわかったところで、最終的な消費モデルを作成してみましょう。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># ハイパーパラメータを取得</span>
+<span class="n">l2_reg</span> <span class="o">=</span> <span class="n">space_eval</span><span class="p">(</span><span class="n">search_space</span><span class="p">,</span> <span class="n">argmin</span><span class="p">)</span>
+
+<span class="c1"># 上記のハイパーパラメータを使って、モデルのインスタンス化</span>
+<span class="n">spend_model</span> <span class="o">=</span> <span class="n">GammaGammaFitter</span><span class="p">(</span><span class="n">penalizer_coef</span><span class="o">=</span><span class="n">l2_reg</span><span class="p">)</span>
+
+<span class="c1"># モデルのトレーニング</span>
+<span class="n">spend_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">input_pd</span><span class="p">[</span><span class="s1">&#39;frequency_cal&#39;</span><span class="p">],</span> <span class="n">input_pd</span><span class="p">[</span><span class="s1">&#39;monetary_value_cal&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="step-6">
+<h2>Step 6: 消費モデルの評価<a class="headerlink" href="#step-6" title="Permalink to this headline">¶</a></h2>
+<p>モデルの評価はとてもシンプルです。 予測値とホールドアウト期間の実績がどの程度一致しているかを調べ、そこからMSEを算出します。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># モデルの評価</span>
+<span class="n">monetary_actual</span> <span class="o">=</span> <span class="n">input_pd</span><span class="p">[</span><span class="s1">&#39;monetary_value_holdout&#39;</span><span class="p">]</span>
+<span class="n">monetary_predicted</span> <span class="o">=</span> <span class="n">spend_model</span><span class="o">.</span><span class="n">conditional_expected_average_profit</span><span class="p">(</span><span class="n">input_pd</span><span class="p">[</span><span class="s1">&#39;frequency_holdout&#39;</span><span class="p">],</span> <span class="n">input_pd</span><span class="p">[</span><span class="s1">&#39;monetary_value_holdout&#39;</span><span class="p">])</span>
+<span class="n">mse</span> <span class="o">=</span> <span class="n">score_model</span><span class="p">(</span><span class="n">monetary_actual</span><span class="p">,</span> <span class="n">monetary_predicted</span><span class="p">,</span> <span class="s1">&#39;mse&#39;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;MSE: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mse</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>また、Gamma-Gammaモデルを説明した<a class="reference external" href="http://www.brucehardie.com/notes/025/gamma_gamma.pdf">原著論文</a>で採用された手法である、予測された支出額と実際の支出額がどのように一致しているかを視覚的に確認することもできます。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="c1"># ヒストグラムのbins数を設定</span>
+<span class="n">bins</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="c1"># plot size</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+<span class="c1"># histogram plot values and presentation</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">monetary_actual</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;actual&#39;</span><span class="p">,</span> <span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;STEELBLUE&#39;</span><span class="p">,</span> <span class="n">rwidth</span><span class="o">=</span><span class="mf">0.99</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span> <span class="n">monetary_predicted</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;predict&#39;</span><span class="p">,</span> <span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;ORANGE&#39;</span><span class="p">,</span>  <span class="n">rwidth</span><span class="o">=</span><span class="mf">0.99</span><span class="p">)</span>
+
+<span class="c1"># place legend on chart</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>10個のbins数でのヒストグラムでは、モデルは実際のデータとうまく一致しているように見えます。
+ビンの数を増やすと、モデルはデータの残りの構造に従う一方で、最も価値の低い消費の発生を過小評価していることがわかります。
+興味深いことに、先に引用した論文でも同じようなパターンが観察されています。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># ヒストグラムのbins数を40に増やす</span>
+<span class="n">bins</span> <span class="o">=</span> <span class="mi">40</span>
+
+<span class="c1"># plot size</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+
+<span class="c1"># histogram plot values and presentation</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">monetary_actual</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;actual&#39;</span><span class="p">,</span> <span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;STEELBLUE&#39;</span><span class="p">,</span> <span class="n">rwidth</span><span class="o">=</span><span class="mf">0.99</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span> <span class="n">monetary_predicted</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;predict&#39;</span><span class="p">,</span> <span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;ORANGE&#39;</span><span class="p">,</span>  <span class="n">rwidth</span><span class="o">=</span><span class="mf">0.99</span><span class="p">)</span>
+
+<span class="c1"># place legend on chart</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="step-7">
+<h2>Step 7: 顧客生涯価値を算出する<a class="headerlink" href="#step-7" title="Permalink to this headline">¶</a></h2>
+<p>消費モデルでは、将来の購入イベントから得られる可能性のある金銭的価値を計算することができます。
+将来の支出イベントの可能性を計算するライフタイムモデルと組み合わせて使用することで、将来の期間における顧客生涯価値を導き出すことができます。</p>
+<p>これを実証するには、まずライフタイムモデルをトレーニングする必要があります。 ここでは、BG/NBDモデルに、以前のノートブックの実行時に得られたL2パラメータ設定を使用します。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lifetimes.fitters.beta_geo_fitter</span> <span class="kn">import</span> <span class="n">BetaGeoFitter</span>
+
+<span class="c1"># Spark-DFからPandas-DFに変換する</span>
+<span class="n">lifetime_input_pd</span> <span class="o">=</span> <span class="n">filtered_cal</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span> 
+
+<span class="c1"># モデルのインスタンス作成(前回のNoteookのHyperparamチューニングの結果からパラメータを設定する)</span>
+<span class="n">lifetimes_model</span> <span class="o">=</span> <span class="n">BetaGeoFitter</span><span class="p">(</span><span class="n">penalizer_coef</span><span class="o">=</span><span class="mf">0.9995179967263891</span><span class="p">)</span>
+
+<span class="c1"># モデルのトレーニング</span>
+<span class="n">lifetimes_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">lifetime_input_pd</span><span class="p">[</span><span class="s1">&#39;frequency_cal&#39;</span><span class="p">],</span> <span class="n">lifetime_input_pd</span><span class="p">[</span><span class="s1">&#39;recency_cal&#39;</span><span class="p">],</span> <span class="n">lifetime_input_pd</span><span class="p">[</span><span class="s1">&#39;T_cal&#39;</span><span class="p">])</span>
+
+<span class="c1"># スコアリング</span>
+<span class="n">frequency_holdout_actual</span> <span class="o">=</span> <span class="n">lifetime_input_pd</span><span class="p">[</span><span class="s1">&#39;frequency_holdout&#39;</span><span class="p">]</span>
+<span class="n">frequency_holdout_predicted</span> <span class="o">=</span> <span class="n">lifetimes_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">lifetime_input_pd</span><span class="p">[</span><span class="s1">&#39;duration_holdout&#39;</span><span class="p">],</span> <span class="n">lifetime_input_pd</span><span class="p">[</span><span class="s1">&#39;frequency_cal&#39;</span><span class="p">],</span> <span class="n">lifetime_input_pd</span><span class="p">[</span><span class="s1">&#39;recency_cal&#39;</span><span class="p">],</span> <span class="n">lifetime_input_pd</span><span class="p">[</span><span class="s1">&#39;T_cal&#39;</span><span class="p">])</span>
+<span class="n">mse</span> <span class="o">=</span> <span class="n">score_model</span><span class="p">(</span><span class="n">frequency_holdout_actual</span><span class="p">,</span> <span class="n">frequency_holdout_predicted</span><span class="p">,</span> <span class="s1">&#39;mse&#39;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;MSE: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mse</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>では、これらを組み合わせてCLVを計算してみましょう。ここでは、毎月の割引率を1％として、12ヶ月間のCLVを計算します。</p>
+<p>注：CFOは通常、この種の計算に使用すべき割引率を定義します。 割引率が月単位の割引率であることを確認してください。 年単位の割引率が提供されている場合は、必ず<a class="reference external" href="https://www.experiglot.com/2006/06/07/how-to-convert-from-an-annual-rate-to-an-effective-periodic-rate-javascript-calculator/">この式</a>を使って月単位に変換してください。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">clv_input_pd</span> <span class="o">=</span> <span class="n">filtered</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span>
+
+<span class="c1"># 1年間のCLVを顧客毎に算出する</span>
+<span class="n">clv_input_pd</span><span class="p">[</span><span class="s1">&#39;clv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+  <span class="n">spend_model</span><span class="o">.</span><span class="n">customer_lifetime_value</span><span class="p">(</span>
+    <span class="n">lifetimes_model</span><span class="p">,</span> <span class="c1">#the model to use to predict the number of future transactions</span>
+    <span class="n">clv_input_pd</span><span class="p">[</span><span class="s1">&#39;frequency&#39;</span><span class="p">],</span>
+    <span class="n">clv_input_pd</span><span class="p">[</span><span class="s1">&#39;recency&#39;</span><span class="p">],</span>
+    <span class="n">clv_input_pd</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">],</span>
+    <span class="n">clv_input_pd</span><span class="p">[</span><span class="s1">&#39;monetary_value&#39;</span><span class="p">],</span>
+    <span class="n">time</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="c1"># months</span>
+    <span class="n">discount_rate</span><span class="o">=</span><span class="mf">0.01</span> <span class="c1"># monthly discount rate ~ 12.7% annually</span>
+  <span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">clv_input_pd</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>CLVは、企業がターゲットを絞ったプロモーション活動を計画したり、カスタマー・エクイティを評価したりする際に使用される強力な指標です。そのため、私たちのモデルを使いやすい関数に変換して、バッチ、ストリーミング、インタラクティブなシナリオで使用できるようにすることができれば、非常に便利になります。</p>
+<p>前回のノートをご覧になった方は、私たちがどこに向かっているのかご存知でしょう。 ここでは、CLVの計算が1つのモデルではなく、2つのモデルに依存していることを指摘しておきます。 問題はありません。 ここでは、生涯モデルを消費モデルに関連するピクルス化されたアーティファクトとして保存し、消費モデル用に開発するカスタムラッパーで、生涯モデルを再インスタンス化して、予測に利用できるようにします。</p>
+<p>まずは、ライフタイムモデルを一時的に保存してみましょう。:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># lifetimesモデルを保存するテンポラリなパスを設定</span>
+<span class="n">lifetimes_model_path</span> <span class="o">=</span> <span class="s1">&#39;/dbfs/tmp/lifetimes_model.pkl&#39;</span>
+
+<span class="c1"># 以前の結果があれば削除する</span>
+<span class="k">try</span><span class="p">:</span>
+  <span class="n">dbutils</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">rm</span><span class="p">(</span><span class="n">lifetimes_model_path</span><span class="p">)</span>
+<span class="k">except</span><span class="p">:</span>
+  <span class="k">pass</span>
+
+<span class="c1"># 保存する</span>
+<span class="n">lifetimes_model</span><span class="o">.</span><span class="n">save_model</span><span class="p">(</span><span class="n">lifetimes_model_path</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>それでは、消費モデルのカスタムラッパーを定義してみましょう。 ここで、<code class="docutils literal notranslate"><span class="pre">predict()</span></code> メソッドは非常にシンプルで、CLV値を返すだけです。 また、月の値と割引率が入力データに含まれていることを前提としています。</p>
+<p><code class="docutils literal notranslate"><span class="pre">Predict()</span></code> メソッドのロジックを変更したほか、<code class="docutils literal notranslate"><span class="pre">load_context()</span></code> の定義を新たに設けました。 このメソッドは、<a class="reference external" href="https://mlflow.org/">mlflow</a>モデルがインスタンス化されたときに呼び出されます。 ここでは、lifetimeモデルの成果物をロードします。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">mlflow</span> 
+<span class="kn">import</span> <span class="nn">mlflow.pyfunc</span>
+
+<span class="c1"># lifetimesモデルのラッパークラスを作成</span>
+<span class="k">class</span> <span class="nc">_clvModelWrapper</span><span class="p">(</span><span class="n">mlflow</span><span class="o">.</span><span class="n">pyfunc</span><span class="o">.</span><span class="n">PythonModel</span><span class="p">):</span>
+  
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spend_model</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">spend_model</span> <span class="o">=</span> <span class="n">spend_model</span>
+        
+    <span class="k">def</span> <span class="nf">load_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+      <span class="c1"># lifetimesライブラリからBase Model Fitterをimportしておく</span>
+      <span class="kn">from</span> <span class="nn">lifetimes.fitters.base_fitter</span> <span class="kn">import</span> <span class="n">BaseFitter</span>
+      
+      <span class="c1"># モデルのインスタンスを作成</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">lifetimes_model</span> <span class="o">=</span> <span class="n">BaseFitter</span><span class="p">()</span>
+      
+      <span class="c1"># MLflowからlifetimesモデルをロードする</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">lifetimes_model</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">artifacts</span><span class="p">[</span><span class="s1">&#39;lifetimes_model&#39;</span><span class="p">])</span>
+      
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">dataframe</span><span class="p">):</span>
+      
+      <span class="c1"># 入力データから各種パラメータを抽出</span>
+      <span class="n">frequency</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">recency</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">T</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span>
+      <span class="n">monetary_value</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">3</span><span class="p">]</span>
+      <span class="n">months</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dataframe</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">])</span>
+      <span class="n">discount_rate</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dataframe</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">])</span>
+      
+      <span class="c1"># CLV推定を実施する</span>
+      <span class="n">results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">spend_model</span><span class="o">.</span><span class="n">customer_lifetime_value</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lifetimes_model</span><span class="p">,</span> <span class="c1">#the model to use to predict the number of future transactions</span>
+            <span class="n">frequency</span><span class="p">,</span>
+            <span class="n">recency</span><span class="p">,</span>
+            <span class="n">T</span><span class="p">,</span>
+            <span class="n">monetary_value</span><span class="p">,</span>
+            <span class="n">time</span><span class="o">=</span><span class="n">months</span><span class="p">,</span>
+            <span class="n">discount_rate</span><span class="o">=</span><span class="n">discount_rate</span>
+            <span class="p">),</span>
+          <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;clv&#39;</span><span class="p">]</span>
+          <span class="p">)</span>
+      
+      <span class="k">return</span> <span class="n">results</span><span class="p">[[</span><span class="s1">&#39;clv&#39;</span><span class="p">]]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>次に、消費モデルをmlflowに保存します。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># lifetimesライブラリをconda環境に追加</span>
+<span class="n">conda_env</span> <span class="o">=</span> <span class="n">mlflow</span><span class="o">.</span><span class="n">pyfunc</span><span class="o">.</span><span class="n">get_default_conda_env</span><span class="p">()</span>
+<span class="n">conda_env</span><span class="p">[</span><span class="s1">&#39;dependencies&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;pip&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;lifetimes==0.10.1&#39;</span><span class="p">]</span> <span class="c1"># lifetimesのversionはノートブック前半でinstallしたversionに合わせる</span>
+
+<span class="c1"># モデルトレーニング実行をMLflowに保存する</span>
+<span class="k">with</span> <span class="n">mlflow</span><span class="o">.</span><span class="n">start_run</span><span class="p">(</span><span class="n">run_name</span><span class="o">=</span><span class="s1">&#39;deployment run&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">run</span><span class="p">:</span>
+  
+  <span class="c1"># lifetimeモデルをartifact &quot;lifetime_model&quot;としてmlflowでトラックするための準備</span>
+  <span class="n">artifacts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;lifetimes_model&#39;</span><span class="p">:</span> <span class="n">lifetimes_model_path</span><span class="p">}</span>
+  
+  <span class="c1"># MLflowでトラック</span>
+  <span class="n">mlflow</span><span class="o">.</span><span class="n">pyfunc</span><span class="o">.</span><span class="n">log_model</span><span class="p">(</span>
+    <span class="s1">&#39;model&#39;</span><span class="p">,</span> 
+    <span class="n">python_model</span><span class="o">=</span><span class="n">_clvModelWrapper</span><span class="p">(</span><span class="n">spend_model</span><span class="p">),</span> 
+    <span class="n">conda_env</span><span class="o">=</span><span class="n">conda_env</span><span class="p">,</span>
+    <span class="n">artifacts</span><span class="o">=</span><span class="n">artifacts</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>先ほどと同様に、モデルから関数を作成します。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># 関数の戻り値のデータ型(スキーマ)を定義</span>
+<span class="n">result_schema</span> <span class="o">=</span> <span class="n">DoubleType</span><span class="p">()</span>
+
+<span class="c1"># MLflowに登録されたモデルをベースにした関数を定義する</span>
+<span class="n">clv_udf</span> <span class="o">=</span> <span class="n">mlflow</span><span class="o">.</span><span class="n">pyfunc</span><span class="o">.</span><span class="n">spark_udf</span><span class="p">(</span>
+  <span class="n">spark</span><span class="p">,</span> 
+  <span class="s1">&#39;runs:/</span><span class="si">{0}</span><span class="s1">/model&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">run_id</span><span class="p">),</span> 
+  <span class="n">result_type</span><span class="o">=</span><span class="n">result_schema</span>
+  <span class="p">)</span>
+
+<span class="c1"># 上記の関数をSQLで使用するためにUDFとして登録する</span>
+<span class="n">_</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">udf</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s1">&#39;clv&#39;</span><span class="p">,</span> <span class="n">clv_udf</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>これでモデルがPython/SQLで利用可能になりました。</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># 次のセルでSQLを実行するためのtemp viewを作成しておく</span>
+<span class="n">filtered</span><span class="o">.</span><span class="n">createOrReplaceTempView</span><span class="p">(</span><span class="s1">&#39;customer_metrics&#39;</span><span class="p">)</span>
+
+<span class="c1"># Spark DataFrameに関数を適用させる</span>
+<span class="n">display</span><span class="p">(</span>
+  <span class="n">filtered</span>
+    <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span>
+      <span class="s1">&#39;clv&#39;</span><span class="p">,</span> 
+      <span class="n">clv_udf</span><span class="p">(</span><span class="n">filtered</span><span class="o">.</span><span class="n">frequency</span><span class="p">,</span> <span class="n">filtered</span><span class="o">.</span><span class="n">recency</span><span class="p">,</span> <span class="n">filtered</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">filtered</span><span class="o">.</span><span class="n">monetary_value</span><span class="p">,</span> <span class="n">lit</span><span class="p">(</span><span class="mi">12</span><span class="p">),</span> <span class="n">lit</span><span class="p">(</span><span class="mf">0.01</span><span class="p">))</span>
+      <span class="p">)</span>
+    <span class="o">.</span><span class="n">selectExpr</span><span class="p">(</span>
+      <span class="s1">&#39;customerid&#39;</span><span class="p">,</span> 
+      <span class="s1">&#39;clv&#39;</span>
+      <span class="p">)</span>
+  <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>It can also be used with SQL:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">sql</span> <span class="o">--</span> <span class="n">顧客生涯価値を算出する</span>
+
+<span class="n">SELECT</span>
+  <span class="n">customerid</span><span class="p">,</span>
+  <span class="n">clv</span><span class="p">(</span>
+    <span class="n">frequency</span><span class="p">,</span>
+    <span class="n">recency</span><span class="p">,</span>
+    <span class="n">T</span><span class="p">,</span>
+    <span class="n">monetary_value</span><span class="p">,</span>
+    <span class="mi">12</span><span class="p">,</span>
+    <span class="mf">0.01</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">clv</span>
+<span class="n">FROM</span> <span class="n">customer_metrics</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            kernelName: "python3",
+            path: "./notebooks/solution_accel/clv"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+              </div>
+              
+        
+            <!-- Previous / next buttons -->
+<div class='prev-next-area'> 
+    <a class='left-prev' id="prev-link" href="clv1.html" title="previous page">
+        <i class="fas fa-angle-left"></i>
+        <div class="prev-next-info">
+            <p class="prev-next-subtitle">previous</p>
+            <p class="prev-next-title">将来のカスタマーエンゲージメントの確率を算出する</p>
+        </div>
+    </a>
+    <a class='right-next' id="next-link" href="../../demo/DeltaLakePrimer_Simple.html" title="next page">
+    <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">従来のデータレイクの制限と限界</p>
+    </div>
+    <i class="fas fa-angle-right"></i>
+    </a>
+</div>
+        
+        </div>
+    </div>
+    <footer class="footer">
+    <div class="container">
+      <p>
+        
+          By Masa Kitamura<br/>
+        
+            &copy; Copyright 2021.<br/>
+      </p>
+    </div>
+  </footer>
+</main>
+
+
+      </div>
+    </div>
+  
+  <script src="../../../_static/js/index.be7d3bbb2ef33a8344ce.js"></script>
+
+  </body>
+</html>

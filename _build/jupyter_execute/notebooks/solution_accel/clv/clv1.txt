@@ -1,0 +1,743 @@
+%pip install lifetimes==0.10.1
+
+%sh
+wget 'https://sajpstorage.blob.core.windows.net/demo-asset-workshop2021/Online_Retail-93ac4.csv'
+cp Online_Retail-93ac4.csv /dbfs/FileStore/tables/online_retail/
+
+dbutils.fs.ls('file:///dbfs/FileStore/tables/online_retail')
+
+%fs ls /FileStore/tables/online_retail
+
+import pandas as pd
+import numpy as np
+
+# 対象のxlsxファイルのパスを取得
+xlsx_filename = dbutils.fs.ls('file:///dbfs/FileStore/tables/online_retail')[0][0]
+
+# 上記ファイルのデータのスキーマを設定(既知とする)
+orders_schema = {
+  'InvoiceNo':np.str,
+  'StockCode':np.str,
+  'Description':np.str,
+  'Quantity':np.int64,
+#  'InvoiceDate':np.datetime64,
+  'InvoiceDate':np.str,
+  'UnitPrice':np.float64,
+  'CustomerID':np.str,
+  'Country':np.str  
+  }
+
+# xlsxファイルをPandasのDataFrameとして読み込む
+# (このため、ライブラリ "xlrd" が必要) 
+# orders_pd = pd.read_excel(
+#   xlsx_filename, 
+#   sheet_name='Online Retail',
+#   header=0, # 第一行目はヘッダーになっている
+#   dtype=orders_schema
+#   )
+
+#　元のファイルがCSVになっているので、そのまま読み込む
+orders_pd = pd.read_csv(
+  xlsx_filename, 
+  sep=',',
+  #sheet_name='Online Retail',
+  header=0, # 第一行目はヘッダーになっている
+  dtype=orders_schema,
+  parse_dates=['InvoiceDate']
+  )
+
+# 読み込んだDataFrameを確認してみる
+orders_pd.head(10)
+
+# Pandas-DF から　Spark-DF　へ変換
+orders = spark.createDataFrame(orders_pd)
+
+# Temp Viewの作成
+orders.createOrReplaceTempView('orders')
+
+%sql -- 1日ごとのユニークなトランザクション数
+
+SELECT 
+  TO_DATE(InvoiceDate) as InvoiceDate,
+  COUNT(DISTINCT InvoiceNo) as Transactions
+FROM orders
+GROUP BY TO_DATE(InvoiceDate)
+ORDER BY InvoiceDate;
+
+%sql -- 月ごとのユニークなトランザクション数
+
+SELECT 
+  TRUNC(InvoiceDate, 'month') as InvoiceMonth,
+  COUNT(DISTINCT InvoiceNo) as Transactions
+FROM orders
+GROUP BY TRUNC(InvoiceDate, 'month') 
+ORDER BY InvoiceMonth;
+
+%sql -- unique customers and transactions
+
+SELECT
+ COUNT(DISTINCT CustomerID) as Customers,
+ COUNT(DISTINCT InvoiceNo) as Transactions
+FROM orders
+WHERE CustomerID IS NOT NULL;
+
+%sql -- the distribution of per-customer transaction counts 
+
+SELECT
+  x.Transactions,
+  COUNT(x.*) as Occurrences
+FROM (
+  SELECT
+    CustomerID,
+    COUNT(DISTINCT InvoiceNo) as Transactions 
+  FROM orders
+  WHERE CustomerID IS NOT NULL
+  GROUP BY CustomerID
+  ) x
+GROUP BY 
+  x.Transactions
+ORDER BY
+  x.Transactions;
+
+%sql -- the distribution of per-customer transaction counts
+     -- with consideration of same-day transactions as a single transaction 
+
+SELECT
+  x.Transactions,
+  COUNT(x.*) as Occurances
+FROM (
+  SELECT
+    CustomerID,
+    COUNT(DISTINCT TO_DATE(InvoiceDate)) as Transactions
+  FROM orders
+  WHERE CustomerID IS NOT NULL
+  GROUP BY CustomerID
+  ) x
+GROUP BY 
+  x.Transactions
+ORDER BY
+  x.Transactions;
+
+%sql -- distribution of per-customer average number of days between purchase events
+
+WITH CustomerPurchaseDates
+  AS (
+    SELECT DISTINCT
+      CustomerID,
+      TO_DATE(InvoiceDate) as InvoiceDate
+    FROM orders 
+    WHERE CustomerId IS NOT NULL
+    )
+SELECT -- Per-Customer Average Days Between Purchase Events
+  CustomerID,
+  AVG(
+    DATEDIFF(a.NextInvoiceDate, a.InvoiceDate)
+    ) as AvgDaysBetween
+FROM ( -- Purchase Event and Next Purchase Event by Customer
+  SELECT 
+    x.CustomerID,
+    x.InvoiceDate,
+    MIN(y.InvoiceDate) as NextInvoiceDate
+  FROM CustomerPurchaseDates x
+  INNER JOIN CustomerPurchaseDates y
+    ON x.CustomerID=y.CustomerID AND x.InvoiceDate < y.InvoiceDate
+  GROUP BY 
+    x.CustomerID,
+    x.InvoiceDate
+    ) a
+GROUP BY CustomerID
+
+import lifetimes
+
+# set the last transaction date as the end point for this historical dataset
+current_date = orders_pd['InvoiceDate'].max()
+
+# calculate the required customer metrics
+metrics_pd = (
+  lifetimes.utils.summary_data_from_transaction_data(
+    orders_pd,
+    customer_id_col='CustomerID',
+    datetime_col='InvoiceDate',
+    observation_period_end = current_date, 
+    freq='D'
+    )
+  )
+
+# display first few rows
+metrics_pd.head(10)
+
+%sql
+SELECT  TO_DATE(InvoiceDate) FROM orders WHERE CustomerID = 12348
+GROUP BY TO_DATE(InvoiceDate)
+ORDER BY TO_DATE(InvoiceDate)
+
+# sql statement to derive summary customer stats
+sql = '''
+  SELECT
+    a.customerid as CustomerID,
+    CAST(COUNT(DISTINCT a.transaction_at) - 1 as float) as frequency,
+    CAST(DATEDIFF(MAX(a.transaction_at), a.first_at) as float) as recency,
+    CAST(DATEDIFF(a.current_dt, a.first_at) as float) as T
+  FROM ( -- customer order history
+    SELECT DISTINCT
+      x.customerid,
+      z.first_at,
+      TO_DATE(x.invoicedate) as transaction_at,
+      y.current_dt
+    FROM orders x
+    CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) y                                -- current date (according to dataset)
+    INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) z  -- first order per customer
+      ON x.customerid=z.customerid
+    WHERE x.customerid IS NOT NULL
+    ) a
+  GROUP BY a.customerid, a.current_dt, a.first_at
+  ORDER BY CustomerID
+  '''
+
+# capture stats in dataframe 
+metrics_sql = spark.sql(sql)
+
+# display stats
+display(metrics_sql)  
+
+from pyspark.sql.functions import to_date, datediff, max, min, countDistinct, count, sum, when
+from pyspark.sql.types import *
+
+# valid customer orders
+x = orders.where(orders.CustomerID.isNotNull())
+
+# calculate last date in dataset
+y = (
+  orders
+    .groupBy()
+    .agg(max(to_date(orders.InvoiceDate)).alias('current_dt'))
+  )
+
+# calculate first transaction date by customer
+z = (
+  orders
+    .groupBy(orders.CustomerID)
+    .agg(min(to_date(orders.InvoiceDate)).alias('first_at'))
+  )
+
+# combine customer history with date info 
+a = (x
+    .crossJoin(y)
+    .join(z, x.CustomerID==z.CustomerID, how='inner')
+    .select(
+      x.CustomerID.alias('customerid'), 
+      z.first_at, 
+      to_date(x.InvoiceDate).alias('transaction_at'), 
+      y.current_dt
+      )
+     .distinct()
+    )
+
+# calculate relevant metrics by customer
+metrics_api = (a
+           .groupBy(a.customerid, a.current_dt, a.first_at)
+           .agg(
+             (countDistinct(a.transaction_at)-1).cast(FloatType()).alias('frequency'),
+             datediff(max(a.transaction_at), a.first_at).cast(FloatType()).alias('recency'),
+             datediff(a.current_dt, a.first_at).cast(FloatType()).alias('T')
+             )
+           .select('customerid','frequency','recency','T')
+           .orderBy('customerid')
+          )
+
+display(metrics_api)
+
+# summary data from lifetimes
+metrics_pd.describe()
+
+# summary data from SQL statement
+metrics_sql.toPandas().describe()
+
+# summary data from pyspark.sql API
+metrics_api.toPandas().describe()
+
+# NotebookのWidgetを作成 (デフォルト: 90-days)
+dbutils.widgets.text('holdout days', '90')
+
+from datetime import timedelta
+
+# データセットの最後の日付を分析の「今日の日付」にする
+current_date = orders_pd['InvoiceDate'].max()
+
+# キャブレーション期間の最終日を定義する
+holdout_days = int(dbutils.widgets.get('holdout days'))
+calibration_end_date = current_date - timedelta(days = holdout_days)
+
+# lifetimesライブラリを使って、顧客メトリックを算出する
+metrics_cal_pd = (
+  lifetimes.utils.calibration_and_holdout_data(
+    orders_pd,
+    customer_id_col='CustomerID',
+    datetime_col='InvoiceDate',
+    observation_period_end = current_date,
+    calibration_period_end=calibration_end_date,
+    freq='D'    
+    )
+  )
+
+# display first few rows
+metrics_cal_pd.head(10)
+
+sql = '''
+WITH CustomerHistory 
+  AS (
+    SELECT  -- nesting req'ed b/c can't SELECT DISTINCT on widget parameter
+      m.*,
+      getArgument('holdout days') as duration_holdout
+    FROM (
+      SELECT DISTINCT
+        x.customerid,
+        z.first_at,
+        TO_DATE(x.invoicedate) as transaction_at,
+        y.current_dt
+      FROM orders x
+      CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) y                                -- current date (according to dataset)
+      INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) z  -- first order per customer
+        ON x.customerid=z.customerid
+      WHERE x.customerid IS NOT NULL
+    ) m
+  )
+SELECT
+    a.customerid as CustomerID,
+    a.frequency as frequency_cal,
+    a.recency as recency_cal,
+    a.T as T_cal,
+    COALESCE(b.frequency_holdout, 0.0) as frequency_holdout,
+    a.duration_holdout
+FROM ( -- CALIBRATION PERIOD CALCULATIONS
+    SELECT
+        p.customerid,
+        CAST(p.duration_holdout as float) as duration_holdout,
+        CAST(DATEDIFF(MAX(p.transaction_at), p.first_at) as float) as recency,
+        CAST(COUNT(DISTINCT p.transaction_at) - 1 as float) as frequency,
+        CAST(DATEDIFF(DATE_SUB(p.current_dt, int(p.duration_holdout)), p.first_at) as float) as T
+    FROM CustomerHistory p
+    WHERE p.transaction_at < DATE_SUB(p.current_dt, int(p.duration_holdout))  -- LIMIT THIS QUERY TO DATA IN THE CALIBRATION PERIOD
+    GROUP BY p.customerid, p.first_at, p.current_dt, p.duration_holdout
+  ) a
+LEFT OUTER JOIN ( -- HOLDOUT PERIOD CALCULATIONS
+  SELECT
+    p.customerid,
+    CAST(COUNT(DISTINCT p.transaction_at) as float) as frequency_holdout
+  FROM CustomerHistory p
+  WHERE 
+    p.transaction_at >= DATE_SUB(p.current_dt, int(p.duration_holdout) ) AND  -- LIMIT THIS QUERY TO DATA IN THE HOLDOUT PERIOD
+    p.transaction_at <= p.current_dt
+  GROUP BY p.customerid
+  ) b
+  ON a.customerid=b.customerid
+ORDER BY CustomerID
+'''
+
+metrics_cal_sql = spark.sql(sql)
+display(metrics_cal_sql)
+
+from pyspark.sql.functions import avg, date_sub, coalesce, lit, expr
+
+# valid customer orders
+x = orders.where(orders.CustomerID.isNotNull())
+
+# calculate last date in dataset
+y = (
+  orders
+    .groupBy()
+    .agg(max(to_date(orders.InvoiceDate)).alias('current_dt'))
+  )
+
+# calculate first transaction date by customer
+z = (
+  orders
+    .groupBy(orders.CustomerID)
+    .agg(min(to_date(orders.InvoiceDate)).alias('first_at'))
+  )
+
+# combine customer history with date info (CUSTOMER HISTORY)
+p = (x
+    .crossJoin(y)
+    .join(z, x.CustomerID==z.CustomerID, how='inner')
+    .withColumn('duration_holdout', lit(int(dbutils.widgets.get('holdout days'))))
+    .select(
+      x.CustomerID.alias('customerid'),
+      z.first_at, 
+      to_date(x.InvoiceDate).alias('transaction_at'), 
+      y.current_dt, 
+      'duration_holdout'
+      )
+     .distinct()
+    )
+
+# calculate relevant metrics by customer
+# note: date_sub requires a single integer value unless employed within an expr() call
+a = (p
+       .where(p.transaction_at < expr('date_sub(current_dt, duration_holdout)')) 
+       .groupBy(p.customerid, p.current_dt, p.duration_holdout, p.first_at)
+       .agg(
+         (countDistinct(p.transaction_at)-1).cast(FloatType()).alias('frequency_cal'),
+         datediff( max(p.transaction_at), p.first_at).cast(FloatType()).alias('recency_cal'),
+         datediff( expr('date_sub(current_dt, duration_holdout)'), p.first_at).cast(FloatType()).alias('T_cal')
+       )
+    )
+
+b = (p
+      .where((p.transaction_at >= expr('date_sub(current_dt, duration_holdout)')) & (p.transaction_at <= p.current_dt) )
+      .groupBy(p.customerid)
+      .agg(
+        countDistinct(p.transaction_at).cast(FloatType()).alias('frequency_holdout')
+        )
+   )
+
+metrics_cal_api = (a
+                 .join(b, a.customerid==b.customerid, how='left')
+                 .select(
+                   a.customerid.alias('CustomerID'),
+                   a.frequency_cal,
+                   a.recency_cal,
+                   a.T_cal,
+                   coalesce(b.frequency_holdout, lit(0.0)).alias('frequency_holdout'),
+                   a.duration_holdout
+                   )
+                 .orderBy('CustomerID')
+              )
+
+display(metrics_cal_api)
+
+# summary data from lifetimes
+metrics_cal_pd.describe()
+
+# summary data from SQL statement
+metrics_cal_sql.toPandas().describe()
+
+# summary data from pyspark.sql API
+metrics_cal_api.toPandas().describe()
+
+# リピートなしの顧客を除外(フルデータセットの方のDataFrame)
+filtered_pd = metrics_pd[metrics_pd['frequency'] > 0]
+filtered = metrics_api.where(metrics_api.frequency > 0)
+
+## リピートなしの顧客を除外(キャリブレーションのDataFrame)
+filtered_cal_pd = metrics_cal_pd[metrics_cal_pd['frequency_cal'] > 0]
+filtered_cal = metrics_cal_api.where(metrics_cal_api.frequency_cal > 0)
+
+from lifetimes.fitters.pareto_nbd_fitter import ParetoNBDFitter
+from lifetimes.fitters.beta_geo_fitter import BetaGeoFitter
+
+# Spark DFをPandas DFに変換
+input_pd = filtered_cal.toPandas()
+
+# モデルの学習
+model = ParetoNBDFitter(penalizer_coef=0.0)
+model.fit( input_pd['frequency_cal'], input_pd['recency_cal'], input_pd['T_cal'])
+
+# ホールドアウト期間のFrequencyを学習したモデルを使って推測する
+s
+# 実際のFrequency
+frequency_holdout_actual = input_pd['frequency_holdout']
+
+import numpy as np
+
+def score_model(actuals, predicted, metric='mse'):
+  # metric名を小文字に統一して扱う
+  metric = metric.lower()
+  
+  # metric引数が、二乗誤差平均(mse)と標準偏差(rmse)の場合
+  if metric=='mse' or metric=='rmse':
+    val = np.sum(np.square(actuals-predicted))/actuals.shape[0]
+    if metric=='rmse':
+        val = np.sqrt(val)
+  
+  # metric引数が、平均絶対誤差(mae)の場合
+  elif metric=='mae':
+    np.sum(np.abs(actuals-predicted))/actuals.shape[0]
+  
+  else:
+    val = None
+  
+  return val
+
+# 上記で定義した関数`score_model()`を使って、モデルの二乗誤差平均(mse)を計算・表示
+print('MSE: {0}'.format(score_model(frequency_holdout_actual, frequency_holdout_predicted, 'mse')))
+
+from hyperopt import hp, fmin, tpe, rand, SparkTrials, STATUS_OK, STATUS_FAIL, space_eval
+
+# サーチする範囲を指定する
+search_space = hp.choice('model_type',[
+                  {'type':'Pareto/NBD', 'l2':hp.uniform('pareto_nbd_l2', 0.0, 1.0)},
+                  {'type':'BG/NBD'    , 'l2':hp.uniform('bg_nbd_l2', 0.0, 1.0)}  
+                  ]
+                )
+
+# モデルを評価する関数を定義する
+def evaluate_model(params):
+  
+  # accesss replicated input_pd dataframe
+  data = inputs.value
+  
+  # 外部から与えられるパラメータをキャッチする
+  model_type = params['type']
+  l2_reg = params['l2']
+  
+  # モデルの初期化
+  if model_type == 'BG/NBD':
+    model = BetaGeoFitter(penalizer_coef=l2_reg)
+  elif model_type == 'Pareto/NBD':
+    model = ParetoNBDFitter(penalizer_coef=l2_reg)
+  else:
+    return {'loss': None, 'status': STATUS_FAIL}
+  
+  # モデルの学習
+  model.fit(data['frequency_cal'], data['recency_cal'], data['T_cal'])
+  
+  # モデルの評価
+  frequency_holdout_actual = data['frequency_holdout']
+  frequency_holdout_predicted = model.predict(data['duration_holdout'], data['frequency_cal'], data['recency_cal'], data['T_cal'])
+  mse = score_model(frequency_holdout_actual, frequency_holdout_predicted, 'mse')
+  
+  # スコアとステータスを返す
+  return {'loss': mse, 'status': STATUS_OK}
+
+import mlflow
+
+# input_pd(Pandas DF)をsparkクラスタにコピーして配っておく
+inputs = sc.broadcast(input_pd)
+
+# configure hyperopt settings to distribute to all executors on workers
+spark_trials = SparkTrials(parallelism=2)
+
+# select optimization algorithm
+algo = tpe.suggest
+
+# perform hyperparameter tuning (logging iterations to mlflow)
+argmin = fmin(
+  fn=evaluate_model,
+  space=search_space,
+  algo=algo,
+  max_evals=100,
+  trials=spark_trials
+  )
+
+# release the broadcast dataset
+inputs.unpersist()
+
+# print optimum hyperparameter settings
+print(space_eval(search_space, argmin))
+
+# get hyperparameter settings
+params = space_eval(search_space, argmin)
+model_type = params['type']
+l2_reg = params['l2']
+
+# instantiate and configure model
+if model_type == 'BG/NBD':
+  model = BetaGeoFitter(penalizer_coef=l2_reg)
+elif model_type == 'Pareto/NBD':
+  model = ParetoNBDFitter(penalizer_coef=l2_reg)
+else:
+  raise 'Unrecognized model type'
+  
+# train the model
+model.fit(input_pd['frequency_cal'], input_pd['recency_cal'], input_pd['T_cal'])
+
+# score the model
+frequency_holdout_actual = input_pd['frequency_holdout']
+frequency_holdout_predicted = model.predict(input_pd['duration_holdout'], input_pd['frequency_cal'], input_pd['recency_cal'], input_pd['T_cal'])
+mse = score_model(frequency_holdout_actual, frequency_holdout_predicted, 'mse')
+
+print('MSE: {0}'.format(mse))
+
+from lifetimes.plotting import plot_calibration_purchases_vs_holdout_purchases
+
+plot_calibration_purchases_vs_holdout_purchases(
+  model, 
+  input_pd, 
+  n=90, 
+  **{'figsize':(8,8)}
+  )
+
+display()
+
+plot_calibration_purchases_vs_holdout_purchases(
+  model, 
+  input_pd, 
+  kind='time_since_last_purchase', 
+  n=90, 
+  **{'figsize':(8,8)}
+  )
+
+display()
+
+plot_calibration_purchases_vs_holdout_purchases(
+  model, 
+  input_pd, 
+  kind='recency_cal', 
+  n=300,
+  **{'figsize':(8,8)}
+  )
+
+display()
+
+# add a field with the probability a customer is currently "alive"
+filtered_pd['prob_alive']=model.conditional_probability_alive(
+    filtered_pd['frequency'], 
+    filtered_pd['recency'], 
+    filtered_pd['T']
+    )
+
+filtered_pd.head(10)
+
+from lifetimes.plotting import plot_history_alive
+import matplotlib.pyplot as plt
+
+# clear past visualization instructions
+plt.clf()
+
+# customer of interest
+CustomerID = '12383' #'12348'#
+
+# grab customer's metrics and transaction history
+cmetrics_pd = input_pd[input_pd['CustomerID']==CustomerID]
+trans_history = orders_pd.loc[orders_pd['CustomerID'] == CustomerID]
+
+# calculate age at end of dataset
+days_since_birth = 400
+
+# plot history of being "alive"
+plot_history_alive(
+  model, 
+  days_since_birth, 
+  trans_history, 
+  'InvoiceDate'
+  )
+
+display()
+
+from lifetimes.plotting import plot_probability_alive_matrix
+
+# set figure size
+plt.subplots(figsize=(12, 8))
+
+plot_probability_alive_matrix(model)
+
+display()
+
+from lifetimes.plotting import plot_frequency_recency_matrix
+
+# set figure size
+plt.subplots(figsize=(12, 8))
+
+plot_frequency_recency_matrix(model, T=30)
+
+display()
+
+filtered_pd['purchases_next30days']=(
+  model.conditional_expected_number_of_purchases_up_to_time(
+    30, 
+    filtered_pd['frequency'], 
+    filtered_pd['recency'], 
+    filtered_pd['T']
+    )
+  )
+
+filtered_pd.head(10)
+#display( spark.createDataFrame( filtered_pd ) )
+
+frequency = 6
+recency = 255
+T = 300
+t = 30
+
+print('Probability of Alive: {0}'.format( model.conditional_probability_alive(frequency, recency, T) ))
+print('Expected Purchases in next {0} days: {1}'.format(t, model.conditional_expected_number_of_purchases_up_to_time(t, frequency, recency, T) ))
+
+import mlflow
+import mlflow.pyfunc
+
+# create wrapper for lifetimes model
+class _lifetimesModelWrapper(mlflow.pyfunc.PythonModel):
+  
+    def __init__(self, lifetimes_model):
+        self.lifetimes_model = lifetimes_model
+
+    def predict(self, context, dataframe):
+      
+      # access input series
+      frequency = dataframe.iloc[:,0]
+      recency = dataframe.iloc[:,1]
+      T = dataframe.iloc[:,2]
+      
+      # calculate probability currently alive
+      results = pd.DataFrame( 
+                  self.lifetimes_model.conditional_probability_alive(frequency, recency, T),
+                  columns=['alive']
+                  )
+      # calculate expected purchases for provided time period
+      results['purch_15day'] = self.lifetimes_model.conditional_expected_number_of_purchases_up_to_time(15, frequency, recency, T)
+      results['purch_30day'] = self.lifetimes_model.conditional_expected_number_of_purchases_up_to_time(30, frequency, recency, T)
+      results['purch_45day'] = self.lifetimes_model.conditional_expected_number_of_purchases_up_to_time(45, frequency, recency, T)
+      
+      return results[['alive', 'purch_15day', 'purch_30day', 'purch_45day']]
+
+# add lifetimes to conda environment info
+conda_env = mlflow.pyfunc.get_default_conda_env()
+conda_env['dependencies'][-1]['pip'] += ['lifetimes==0.10.1'] # version should match version installed at top of this notebook
+
+# save model run to mlflow
+with mlflow.start_run(run_name='deployment run') as run:
+  mlflow.pyfunc.log_model(
+    'model', 
+    python_model=_lifetimesModelWrapper(model), 
+    conda_env=conda_env
+    )
+
+from pyspark.sql.types import ArrayType, FloatType
+
+# define the schema of the values returned by the function
+result_schema = ArrayType(FloatType())
+
+# define function based on mlflow recorded model
+probability_alive_udf = mlflow.pyfunc.spark_udf(
+  spark, 
+  'runs:/{0}/model'.format(run.info.run_id), 
+  result_type=result_schema
+  )
+
+# register the function for use in SQL
+_ = spark.udf.register('probability_alive', probability_alive_udf)
+
+# create a temp view for SQL demonstration (next cell)
+filtered.createOrReplaceTempView('customer_metrics')
+
+# demonstrate function call on Spark DataFrame
+display(
+  filtered
+    .withColumn(
+      'predictions', 
+      probability_alive_udf(filtered.frequency, filtered.recency, filtered.T)
+      )
+    .selectExpr(
+      'customerid', 
+      'predictions[0] as prob_alive', 
+      'predictions[1] as purch_15day', 
+      'predictions[2] as purch_30day', 
+      'predictions[3] as purch_45day'
+      )
+  )
+
+%sql -- predict probabiliies customer is alive and will return in 15, 30 & 45 days
+
+SELECT
+  x.CustomerID,
+  x.prediction[0] as prob_alive,
+  x.prediction[1] as purch_15day,
+  x.prediction[2] as purch_30day,
+  x.prediction[3] as purch_45day
+FROM (
+  SELECT
+    CustomerID,
+    probability_alive(frequency, recency, T) as prediction
+  FROM customer_metrics
+  ) x;

@@ -1,0 +1,793 @@
+%pip install lifetimes==0.10.1
+
+%sh
+wget 'https://sajpstorage.blob.core.windows.net/demo-asset-workshop2021/Online_Retail-93ac4.csv'
+cp Online_Retail-93ac4.csv /dbfs/FileStore/tables/online_retail/
+
+import pandas as pd
+import numpy as np
+
+# 対象のxlsxファイルのパスを取得
+xlsx_filename = dbutils.fs.ls('file:///dbfs/FileStore/tables/online_retail')[0][0]
+
+# 上記ファイルのデータのスキーマを設定(既知とする)
+orders_schema = {
+  'InvoiceNo':np.str,
+  'StockCode':np.str,
+  'Description':np.str,
+  'Quantity':np.int64,
+#  'InvoiceDate':np.datetime64,
+  'InvoiceDate':np.str,
+  'UnitPrice':np.float64,
+  'CustomerID':np.str,
+  'Country':np.str  
+  }
+
+#　元のファイルがCSVになっているので、そのまま読み込む
+orders_pd = pd.read_csv(
+  xlsx_filename, 
+  sep=',',
+  #sheet_name='Online Retail',
+  header=0, # 第一行目はヘッダーになっている
+  dtype=orders_schema,
+  parse_dates=['InvoiceDate']
+  )
+
+# 売上を算出: SalesAmount =  quantity * unit price
+orders_pd['SalesAmount'] = orders_pd['Quantity'] * orders_pd['UnitPrice']
+
+orders_pd.head(10)
+
+# データ変換: pandas DF から Spark DF　へ
+orders = spark.createDataFrame(orders_pd)
+
+# SparkDFをクエリで使うために"orders"という名前のTemp Viewを作成
+orders.createOrReplaceTempView('orders') 
+
+%sql -- 顧客毎の日毎の購入額
+
+SELECT
+  CustomerID,
+  TO_DATE(InvoiceDate) as InvoiceDate,
+  SUM(SalesAmount) as SalesAmount
+FROM orders
+GROUP BY CustomerID, TO_DATE(InvoiceDate)
+
+%sql -- 顧客毎の日毎の購入額 (+条件: 日毎の売上高: 0 - 2500ポンド)
+
+SELECT
+  CustomerID,
+  TO_DATE(InvoiceDate) as InvoiceDate,
+  SUM(SalesAmount) as SalesAmount
+FROM orders
+GROUP BY CustomerID, TO_DATE(InvoiceDate)
+HAVING SalesAmount BETWEEN 0 AND 2500
+
+%sql -- 買い物頻度による顧客ランキング (Top5)
+
+SELECT
+  CustomerID,
+  COUNT(DISTINCT TO_DATE(InvoiceDate)) as Frequency
+FROM orders
+GROUP BY CustomerID
+ORDER BY Frequency DESC
+LIMIT 5
+
+%sql -- 上記の結果から、上位3顧客の日毎の購入額の分布を調べる
+
+SELECT
+  CustomerID,
+  TO_DATE(InvoiceDate) as InvoiceDate,
+  SUM(SalesAmount) as SalesAmount
+FROM orders
+WHERE CustomerID IN (14911, 12748, 17841)
+GROUP BY CustomerID, TO_DATE(InvoiceDate)
+ORDER BY CustomerID
+
+import lifetimes
+
+# 最後のトランザクション発生日をデータセットのエンドポイント(=「今日」)と見なす。
+current_date = orders_pd['InvoiceDate'].max()
+
+# 必要な顧客メトリックをlifetimesライブラリを使って算出する
+metrics_pd = (
+  lifetimes.utils.summary_data_from_transaction_data(
+    orders_pd,
+    customer_id_col='CustomerID',
+    datetime_col='InvoiceDate',
+    observation_period_end = current_date, 
+    freq='D',
+    monetary_value_col='SalesAmount'  # use sales amount to determine monetary value
+    )
+  )
+
+# 最初の数行を確認する
+metrics_pd.head(10)
+
+# SQL文を記述
+sql = '''
+  SELECT
+    a.customerid as CustomerID,
+    CAST(COUNT(DISTINCT a.transaction_at) - 1 as float) as frequency,
+    CAST(DATEDIFF(MAX(a.transaction_at), a.first_at) as float) as recency,
+    CAST(DATEDIFF(a.current_dt, a.first_at) as float) as T,
+    CASE                                              -- MONETARY VALUE CALCULATION
+      WHEN COUNT(DISTINCT a.transaction_at)=1 THEN 0    -- 0 if only one order
+      ELSE
+        SUM(
+          CASE WHEN a.first_at=a.transaction_at THEN 0  -- daily average of all but first order
+          ELSE a.salesamount
+          END
+          ) / (COUNT(DISTINCT a.transaction_at)-1)
+      END as monetary_value    
+  FROM ( -- customer order history
+    SELECT
+      x.customerid,
+      z.first_at,
+      x.transaction_at,
+      y.current_dt,
+      x.salesamount                  
+    FROM (                                            -- customer daily summary
+      SELECT 
+        customerid, 
+        TO_DATE(invoicedate) as transaction_at, 
+        SUM(SalesAmount) as salesamount               -- SALES AMOUNT ADDED
+      FROM orders 
+      GROUP BY customerid, TO_DATE(invoicedate)
+      ) x
+    CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) y                                -- current date (according to dataset)
+    INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) z  -- first order per customer
+      ON x.customerid=z.customerid
+    WHERE x.customerid IS NOT NULL
+    ) a
+  GROUP BY a.customerid, a.current_dt, a.first_at
+  ORDER BY CustomerID
+  '''
+
+# SQLを実行して、結果をSpark Dataframeで受ける
+metrics_sql = spark.sql(sql)
+
+# 結果を確認する
+display(metrics_sql)  
+
+from pyspark.sql.functions import to_date, datediff, max, min, countDistinct, count, sum, when
+from pyspark.sql.types import *
+
+# 有効な顧客注文を含むレコードのみを抜き出す
+x = (
+    orders
+      .where(orders.CustomerID.isNotNull())
+      .withColumn('transaction_at', to_date(orders.InvoiceDate))
+      .groupBy(orders.CustomerID, 'transaction_at')
+      .agg(sum(orders.SalesAmount).alias('salesamount'))   # SALES AMOUNT
+    )
+
+# 最後のトランザクション発生日を取得する
+y = (
+  orders
+    .groupBy()
+    .agg(max(to_date(orders.InvoiceDate)).alias('current_dt'))
+  )
+
+
+# 顧客毎の最初のトランザクション日時を算出
+z = (
+  orders
+    .groupBy(orders.CustomerID)
+    .agg(min(to_date(orders.InvoiceDate)).alias('first_at'))
+  )
+
+
+# 顧客の購入履歴を日時情報と結合させる
+a = (x
+    .crossJoin(y)
+    .join(z, x.CustomerID==z.CustomerID, how='inner')
+    .select(
+      x.CustomerID.alias('customerid'), 
+      z.first_at, 
+      x.transaction_at,
+      x.salesamount,               # SALES AMOUNT
+      y.current_dt
+      )
+    )
+
+# 顧客毎に関連するメトリックを算出する
+metrics_api = (a
+           .groupBy(a.customerid, a.current_dt, a.first_at)
+           .agg(
+             (countDistinct(a.transaction_at)-1).cast(FloatType()).alias('frequency'),
+             datediff(max(a.transaction_at), a.first_at).cast(FloatType()).alias('recency'),
+             datediff(a.current_dt, a.first_at).cast(FloatType()).alias('T'),
+             when(countDistinct(a.transaction_at)==1,0)                           # MONETARY VALUE
+               .otherwise(
+                 sum(
+                   when(a.first_at==a.transaction_at,0)
+                     .otherwise(a.salesamount)
+                   )/(countDistinct(a.transaction_at)-1)
+                 ).alias('monetary_value')
+               )
+           .select('customerid','frequency','recency','T','monetary_value')
+           .orderBy('customerid')
+          )
+
+# 結果の確認
+display(metrics_api)
+
+# summary data from lifetimes
+metrics_pd.describe()
+
+# summary data from SQL statement
+metrics_sql.toPandas().describe()
+
+# summary data from pyspark.sql API
+metrics_api.toPandas().describe()
+
+# ホールドアウト期間を指定するためのウィジットを定義(デフォルト: 90日)
+dbutils.widgets.text('holdout days', '90')
+
+from datetime import timedelta
+
+# 最後のトランザクション発生日をデータセットのエンドポイント(=「今日」)と見なす。
+current_date = orders_pd['InvoiceDate'].max()
+
+# キャリブレーション期間の最終日を算出
+holdout_days = int(dbutils.widgets.get('holdout days'))
+calibration_end_date = current_date - timedelta(days = holdout_days)
+
+# 必要な顧客メトリックを算出する
+metrics_cal_pd = (
+  lifetimes.utils.calibration_and_holdout_data(
+    orders_pd,
+    customer_id_col='CustomerID',
+    datetime_col='InvoiceDate',
+    observation_period_end = current_date,
+    calibration_period_end=calibration_end_date,
+    freq='D',
+    monetary_value_col='SalesAmount'  # use sales amount to determine monetary value
+    )
+  )
+
+# 結果を数行表示して確認
+metrics_cal_pd.head(10)
+
+sql = '''
+WITH CustomerHistory 
+  AS (
+    SELECT  -- nesting req'ed b/c can't SELECT DISTINCT on widget parameter
+      m.*,
+      getArgument('holdout days') as duration_holdout
+    FROM (
+      SELECT
+        x.customerid,
+        z.first_at,
+        x.transaction_at,
+        y.current_dt,
+        x.salesamount
+      FROM (                                            -- CUSTOMER DAILY SUMMARY
+        SELECT 
+          customerid, 
+          TO_DATE(invoicedate) as transaction_at, 
+          SUM(SalesAmount) as salesamount 
+        FROM orders 
+        GROUP BY customerid, TO_DATE(invoicedate)
+        ) x
+      CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) y                                -- current date (according to dataset)
+      INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) z  -- first order per customer
+        ON x.customerid=z.customerid
+      WHERE x.customerid is not null
+      ) m
+  )
+SELECT
+    a.customerid as CustomerID,
+    a.frequency as frequency_cal,
+    a.recency as recency_cal,
+    a.T as T_cal,
+    COALESCE(a.monetary_value,0.0) as monetary_value_cal,
+    COALESCE(b.frequency_holdout, 0.0) as frequency_holdout,
+    COALESCE(b.monetary_value_holdout, 0.0) as monetary_value_holdout,
+    a.duration_holdout
+FROM ( -- CALIBRATION PERIOD CALCULATIONS
+    SELECT
+        p.customerid,
+        CAST(p.duration_holdout as float) as duration_holdout,
+        CAST(DATEDIFF(MAX(p.transaction_at), p.first_at) as float) as recency,
+        CAST(COUNT(DISTINCT p.transaction_at) - 1 as float) as frequency,
+        CAST(DATEDIFF(DATE_SUB(p.current_dt, int(p.duration_holdout) ), p.first_at) as float) as T,
+        CASE                                              -- MONETARY VALUE CALCULATION
+          WHEN COUNT(DISTINCT p.transaction_at)=1 THEN 0    -- 0 if only one order
+          ELSE
+            SUM(
+              CASE WHEN p.first_at=p.transaction_at THEN 0  -- daily average of all but first order
+              ELSE p.salesamount
+              END
+              ) / (COUNT(DISTINCT p.transaction_at)-1)
+          END as monetary_value    
+    FROM CustomerHistory p
+    WHERE p.transaction_at < DATE_SUB( p.current_dt, int(p.duration_holdout) )   -- LIMIT THIS QUERY TO DATA IN THE CALIBRATION PERIOD
+    GROUP BY p.customerid, p.duration_holdout, p.current_dt, p.first_at
+  ) a
+LEFT OUTER JOIN ( -- HOLDOUT PERIOD CALCULATIONS
+  SELECT
+    p.customerid,
+    CAST(COUNT(DISTINCT p.transaction_at) as float) as frequency_holdout,
+    AVG(p.salesamount) as monetary_value_holdout      -- MONETARY VALUE CALCULATION
+  FROM CustomerHistory p
+  WHERE 
+    p.transaction_at >= DATE_SUB(p.current_dt, int(p.duration_holdout) ) AND  -- LIMIT THIS QUERY TO DATA IN THE HOLDOUT PERIOD
+    p.transaction_at <= p.current_dt
+  GROUP BY p.customerid
+  ) b
+  ON a.customerid=b.customerid
+ORDER BY CustomerID
+'''
+
+metrics_cal_sql = spark.sql(sql)
+display(metrics_cal_sql)
+
+from pyspark.sql.functions import avg, date_sub, coalesce, lit, expr
+
+# valid customer orders
+x = (
+  orders
+    .where(orders.CustomerID.isNotNull())
+    .withColumn('transaction_at', to_date(orders.InvoiceDate))
+    .groupBy(orders.CustomerID, 'transaction_at')
+    .agg(sum(orders.SalesAmount).alias('salesamount'))
+  )
+
+# calculate last date in dataset
+y = (
+  orders
+    .groupBy()
+    .agg(max(to_date(orders.InvoiceDate)).alias('current_dt'))
+  )
+
+# calculate first transaction date by customer
+z = (
+  orders
+    .groupBy(orders.CustomerID)
+    .agg(min(to_date(orders.InvoiceDate)).alias('first_at'))
+  )
+
+# combine customer history with date info (CUSTOMER HISTORY)
+p = (x
+    .crossJoin(y)
+    .join(z, x.CustomerID==z.CustomerID, how='inner')
+    .withColumn('duration_holdout', lit(int(dbutils.widgets.get('holdout days'))))
+    .select(
+      x.CustomerID.alias('customerid'),
+      z.first_at, 
+      x.transaction_at, 
+      y.current_dt, 
+      x.salesamount,
+      'duration_holdout'
+      )
+     .distinct()
+    )
+
+# calculate relevant metrics by customer
+# note: date_sub requires a single integer value unless employed within an expr() call
+a = (p
+       .where(p.transaction_at < expr('date_sub(current_dt, duration_holdout)')) 
+       .groupBy(p.customerid, p.current_dt, p.duration_holdout, p.first_at)
+       .agg(
+         (countDistinct(p.transaction_at)-1).cast(FloatType()).alias('frequency_cal'),
+         datediff( max(p.transaction_at), p.first_at).cast(FloatType()).alias('recency_cal'),
+         datediff( expr('date_sub(current_dt, duration_holdout)'), p.first_at).cast(FloatType()).alias('T_cal'),
+         when(countDistinct(p.transaction_at)==1,0)
+           .otherwise(
+             sum(
+               when(p.first_at==p.transaction_at,0)
+                 .otherwise(p.salesamount)
+               )/(countDistinct(p.transaction_at)-1)
+             ).alias('monetary_value_cal')
+       )
+    )
+
+b = (p
+      .where((p.transaction_at >= expr('date_sub(current_dt, duration_holdout)')) & (p.transaction_at <= p.current_dt) )
+      .groupBy(p.customerid)
+      .agg(
+        countDistinct(p.transaction_at).cast(FloatType()).alias('frequency_holdout'),
+        avg(p.salesamount).alias('monetary_value_holdout')
+        )
+   )
+
+metrics_cal_api = (
+                 a
+                 .join(b, a.customerid==b.customerid, how='left')
+                 .select(
+                   a.customerid.alias('CustomerID'),
+                   a.frequency_cal,
+                   a.recency_cal,
+                   a.T_cal,
+                   a.monetary_value_cal,
+                   coalesce(b.frequency_holdout, lit(0.0)).alias('frequency_holdout'),
+                   coalesce(b.monetary_value_holdout, lit(0.0)).alias('monetary_value_holdout'),
+                   a.duration_holdout
+                   )
+                 .orderBy('CustomerID')
+              )
+
+display(metrics_cal_api)
+
+# summary data from lifetimes
+metrics_cal_pd.describe()
+
+# summary data from SQL statement
+metrics_cal_sql.toPandas().describe()
+
+# summary data from pyspark.sql API
+metrics_cal_api.toPandas().describe()
+
+sql = '''
+WITH CustomerHistory 
+  AS (
+    SELECT  -- nesting req'ed b/c can't SELECT DISTINCT on widget parameter
+      m.*,
+      getArgument('holdout days') as duration_holdout
+    FROM (
+      SELECT
+        x.customerid,
+        z.first_at,
+        x.transaction_at,
+        y.current_dt,
+        x.salesamount
+      FROM (                                            -- CUSTOMER DAILY SUMMARY
+        SELECT 
+          customerid, 
+          TO_DATE(invoicedate) as transaction_at, 
+          SUM(SalesAmount) as salesamount 
+        FROM orders 
+        GROUP BY customerid, TO_DATE(invoicedate)
+        ) x
+      CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) y                                -- current date (according to dataset)
+      INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) z  -- first order per customer
+        ON x.customerid=z.customerid
+      WHERE x.customerid is not null
+      ) m
+  )
+SELECT
+    a.customerid as CustomerID,
+    a.frequency as frequency_cal,
+    a.recency as recency_cal,
+    a.T as T_cal,
+    COALESCE(a.monetary_value,0.0) as monetary_value_cal,
+    COALESCE(b.frequency_holdout, 0.0) as frequency_holdout,
+    COALESCE(b.monetary_value_holdout, 0.0) as monetary_value_holdout,
+    a.duration_holdout
+FROM ( -- CALIBRATION PERIOD CALCULATIONS
+    SELECT
+        p.customerid,
+        CAST(p.duration_holdout as float) as duration_holdout,
+        CAST(DATEDIFF(MAX(p.transaction_at), p.first_at) as float) as recency,
+        CAST(COUNT(DISTINCT p.transaction_at) - 1 as float) as frequency,
+        CAST(DATEDIFF(DATE_SUB(p.current_dt, int(p.duration_holdout) ), p.first_at) as float) as T,
+        CASE                                              -- MONETARY VALUE CALCULATION
+          WHEN COUNT(DISTINCT p.transaction_at)=1 THEN 0    -- 0 if only one order
+          ELSE
+            SUM(
+              CASE WHEN p.first_at=p.transaction_at THEN 0  -- daily average of all but first order
+              ELSE p.salesamount
+              END
+              ) / (COUNT(DISTINCT p.transaction_at)-1)
+          END as monetary_value    
+    FROM CustomerHistory p
+    WHERE p.transaction_at < DATE_SUB(p.current_dt, int( p.duration_holdout) )  -- LIMIT THIS QUERY TO DATA IN THE CALIBRATION PERIOD
+    GROUP BY p.customerid, p.duration_holdout, p.current_dt, p.first_at
+  ) a
+LEFT OUTER JOIN ( -- HOLDOUT PERIOD CALCULATIONS
+  SELECT
+    p.customerid,
+    CAST(COUNT(DISTINCT TO_DATE(p.invoicedate)) as float) as frequency_holdout,
+    AVG(p.salesamount) as monetary_value_holdout      -- MONETARY VALUE CALCULATION
+  FROM orders p
+  CROSS JOIN (SELECT MAX(TO_DATE(invoicedate)) as current_dt FROM orders) q                                -- current date (according to dataset)
+  INNER JOIN (SELECT customerid, MIN(TO_DATE(invoicedate)) as first_at FROM orders GROUP BY customerid) r  -- first order per customer
+    ON p.customerid=r.customerid
+  WHERE 
+    p.customerid is not null AND
+    TO_DATE(p.invoicedate) >= DATE_SUB(q.current_dt, int( getArgument('holdout days') ) ) AND  -- LIMIT THIS QUERY TO DATA IN THE HOLDOUT PERIOD
+    TO_DATE(p.invoicedate) <= q.current_dt
+  GROUP BY p.customerid
+  ) b
+  ON a.customerid=b.customerid
+ORDER BY CustomerID
+'''
+
+metrics_cal_sql_alt = spark.sql(sql)
+display(metrics_cal_sql_alt)
+
+# lifetimesライブラリによる算出結果の統計サマリ (比較用)
+metrics_cal_pd.describe()
+
+# SQLによる算出結果の統計サマリ
+# "monetary_value_holdout"はlifetmesライブラリの実装と同じ仕様にしている
+metrics_cal_sql_alt.toPandas().describe()
+
+# リピート購入のない顧客を除外する (全データセット対象)
+filtered = metrics_api.where(metrics_api.frequency > 0)
+
+# リピート購入のない顧客を除外する (キャリブレーション期間を対象)
+filtered_cal = metrics_cal_api.where(metrics_cal_api.frequency_cal > 0)
+
+# exclude dates with negative totals (see note above) 
+filtered = filtered.where(filtered.monetary_value > 0)
+filtered_cal = filtered_cal.where(filtered_cal.monetary_value_cal > 0)
+
+# 相関係数(ピアソン係数)を算出
+filtered.corr('frequency', 'monetary_value')
+
+from hyperopt import hp, fmin, tpe, rand, SparkTrials, STATUS_OK, space_eval
+
+from lifetimes.fitters.gamma_gamma_fitter import GammaGammaFitter
+
+# サーチスペース(探索範囲)を定義
+search_space = hp.uniform('l2', 0.0, 1.0)
+
+# 評価関数を定義
+def score_model(actuals, predicted, metric='mse'):
+  # メトリック名は小文字に揃える
+  metric = metric.lower()
+  
+  # 平均二乗誤差(MSE)と平均平方二乗誤差(RMSE)の場合
+  if metric=='mse' or metric=='rmse':
+    val = np.sum(np.square(actuals-predicted))/actuals.shape[0]
+    if metric=='rmse':
+        val = np.sqrt(val)
+  
+  # 平均絶対誤差(MAE)の場合
+  elif metric=='mae':
+    np.sum(np.abs(actuals-predicted))/actuals.shape[0]
+  
+  # その他の場合
+  else:
+    val = None
+  
+  return val
+
+
+# モデルトレーニングおよび評価の関数を定義する
+def evaluate_model(param):
+  
+  # "input_pd"データフレームのレプリカを用意
+  data = inputs.value
+  
+  # 入力パラメータの抽出
+  l2_reg = param
+  
+  # Gramma-Gamma-Filterモデルのインスタンス化
+  model = GammaGammaFitter(penalizer_coef=l2_reg)
+  
+  # モデルのフィッティング(トレーニング)
+  model.fit(data['frequency_cal'], data['monetary_value_cal'])
+  
+  # モデルの評価
+  monetary_actual = data['monetary_value_holdout']
+  monetary_predicted = model.conditional_expected_average_profit(data['frequency_holdout'], data['monetary_value_holdout'])
+  mse = score_model(monetary_actual, monetary_predicted, 'mse')
+  
+  # スコアとステータスを戻り値として返す
+  return {'loss': mse, 'status': STATUS_OK}
+
+# Hyperoptの並列実行環境としてSparkのworkerを使用するように設定
+spark_trials = SparkTrials(parallelism=8)
+
+# Hpyeroptのパラメータ探索アルゴリズムの設定(今回はTPEを使用する)
+algo = tpe.suggest
+
+# "input_pd"データフレームのコピーを各workerに配っておく
+input_pd = filtered_cal.where(filtered_cal.monetary_value_cal > 0).toPandas()
+inputs = sc.broadcast(input_pd)
+
+# Hyper-parameter Tuningを実行 (かつ、MLflowでトラッキングする)
+argmin = fmin(
+  fn=evaluate_model,
+  space=search_space,
+  algo=algo,
+  max_evals=100,
+  trials=spark_trials
+  )
+
+# Broadcastしたデータをリリースする
+inputs.unpersist()
+
+# 最適なハイパーパラメータを表示
+print(space_eval(search_space, argmin))
+
+# ハイパーパラメータを取得
+l2_reg = space_eval(search_space, argmin)
+
+# 上記のハイパーパラメータを使って、モデルのインスタンス化
+spend_model = GammaGammaFitter(penalizer_coef=l2_reg)
+
+# モデルのトレーニング
+spend_model.fit(input_pd['frequency_cal'], input_pd['monetary_value_cal'])
+
+# モデルの評価
+monetary_actual = input_pd['monetary_value_holdout']
+monetary_predicted = spend_model.conditional_expected_average_profit(input_pd['frequency_holdout'], input_pd['monetary_value_holdout'])
+mse = score_model(monetary_actual, monetary_predicted, 'mse')
+
+print('MSE: {0}'.format(mse))
+
+import matplotlib.pyplot as plt
+
+# ヒストグラムのbins数を設定
+bins = 10
+
+# plot size
+plt.figure(figsize=(15, 5))
+
+# histogram plot values and presentation
+plt.hist(monetary_actual, bins, label='actual', histtype='bar', color='STEELBLUE', rwidth=0.99)
+plt.hist( monetary_predicted, bins, label='predict', histtype='step', color='ORANGE',  rwidth=0.99)
+
+# place legend on chart
+plt.legend(loc='upper right')
+
+# ヒストグラムのbins数を40に増やす
+bins = 40
+
+# plot size
+plt.figure(figsize=(15, 5))
+
+# histogram plot values and presentation
+plt.hist(monetary_actual, bins, label='actual', histtype='bar', color='STEELBLUE', rwidth=0.99)
+plt.hist( monetary_predicted, bins, label='predict', histtype='step', color='ORANGE',  rwidth=0.99)
+
+# place legend on chart
+plt.legend(loc='upper right')
+
+from lifetimes.fitters.beta_geo_fitter import BetaGeoFitter
+
+# Spark-DFからPandas-DFに変換する
+lifetime_input_pd = filtered_cal.toPandas() 
+
+# モデルのインスタンス作成(前回のNoteookのHyperparamチューニングの結果からパラメータを設定する)
+lifetimes_model = BetaGeoFitter(penalizer_coef=0.9995179967263891)
+
+# モデルのトレーニング
+lifetimes_model.fit(lifetime_input_pd['frequency_cal'], lifetime_input_pd['recency_cal'], lifetime_input_pd['T_cal'])
+
+# スコアリング
+frequency_holdout_actual = lifetime_input_pd['frequency_holdout']
+frequency_holdout_predicted = lifetimes_model.predict(lifetime_input_pd['duration_holdout'], lifetime_input_pd['frequency_cal'], lifetime_input_pd['recency_cal'], lifetime_input_pd['T_cal'])
+mse = score_model(frequency_holdout_actual, frequency_holdout_predicted, 'mse')
+
+print('MSE: {0}'.format(mse))
+
+clv_input_pd = filtered.toPandas()
+
+# 1年間のCLVを顧客毎に算出する
+clv_input_pd['clv'] = (
+  spend_model.customer_lifetime_value(
+    lifetimes_model, #the model to use to predict the number of future transactions
+    clv_input_pd['frequency'],
+    clv_input_pd['recency'],
+    clv_input_pd['T'],
+    clv_input_pd['monetary_value'],
+    time=12, # months
+    discount_rate=0.01 # monthly discount rate ~ 12.7% annually
+  )
+)
+
+clv_input_pd.head(10)
+
+# lifetimesモデルを保存するテンポラリなパスを設定
+lifetimes_model_path = '/dbfs/tmp/lifetimes_model.pkl'
+
+# 以前の結果があれば削除する
+try:
+  dbutils.fs.rm(lifetimes_model_path)
+except:
+  pass
+
+# 保存する
+lifetimes_model.save_model(lifetimes_model_path)
+
+import mlflow 
+import mlflow.pyfunc
+
+# lifetimesモデルのラッパークラスを作成
+class _clvModelWrapper(mlflow.pyfunc.PythonModel):
+  
+    def __init__(self, spend_model):
+      self.spend_model = spend_model
+        
+    def load_context(self, context):
+      # lifetimesライブラリからBase Model Fitterをimportしておく
+      from lifetimes.fitters.base_fitter import BaseFitter
+      
+      # モデルのインスタンスを作成
+      self.lifetimes_model = BaseFitter()
+      
+      # MLflowからlifetimesモデルをロードする
+      self.lifetimes_model.load_model(context.artifacts['lifetimes_model'])
+      
+    def predict(self, context, dataframe):
+      
+      # 入力データから各種パラメータを抽出
+      frequency = dataframe.iloc[:,0]
+      recency = dataframe.iloc[:,1]
+      T = dataframe.iloc[:,2]
+      monetary_value = dataframe.iloc[:,3]
+      months = int(dataframe.iloc[0,4])
+      discount_rate = float(dataframe.iloc[0,5])
+      
+      # CLV推定を実施する
+      results = pd.DataFrame(
+          self.spend_model.customer_lifetime_value(
+            self.lifetimes_model, #the model to use to predict the number of future transactions
+            frequency,
+            recency,
+            T,
+            monetary_value,
+            time=months,
+            discount_rate=discount_rate
+            ),
+          columns=['clv']
+          )
+      
+      return results[['clv']]
+
+# lifetimesライブラリをconda環境に追加
+conda_env = mlflow.pyfunc.get_default_conda_env()
+conda_env['dependencies'][-1]['pip'] += ['lifetimes==0.10.1'] # lifetimesのversionはノートブック前半でinstallしたversionに合わせる
+
+# モデルトレーニング実行をMLflowに保存する
+with mlflow.start_run(run_name='deployment run') as run:
+  
+  # lifetimeモデルをartifact "lifetime_model"としてmlflowでトラックするための準備
+  artifacts = {'lifetimes_model': lifetimes_model_path}
+  
+  # MLflowでトラック
+  mlflow.pyfunc.log_model(
+    'model', 
+    python_model=_clvModelWrapper(spend_model), 
+    conda_env=conda_env,
+    artifacts=artifacts
+    )
+
+# 関数の戻り値のデータ型(スキーマ)を定義
+result_schema = DoubleType()
+
+# MLflowに登録されたモデルをベースにした関数を定義する
+clv_udf = mlflow.pyfunc.spark_udf(
+  spark, 
+  'runs:/{0}/model'.format(run.info.run_id), 
+  result_type=result_schema
+  )
+
+# 上記の関数をSQLで使用するためにUDFとして登録する
+_ = spark.udf.register('clv', clv_udf)
+
+# 次のセルでSQLを実行するためのtemp viewを作成しておく
+filtered.createOrReplaceTempView('customer_metrics')
+
+# Spark DataFrameに関数を適用させる
+display(
+  filtered
+    .withColumn(
+      'clv', 
+      clv_udf(filtered.frequency, filtered.recency, filtered.T, filtered.monetary_value, lit(12), lit(0.01))
+      )
+    .selectExpr(
+      'customerid', 
+      'clv'
+      )
+  )
+
+%sql -- 顧客生涯価値を算出する
+
+SELECT
+  customerid,
+  clv(
+    frequency,
+    recency,
+    T,
+    monetary_value,
+    12,
+    0.01
+    ) as clv
+FROM customer_metrics;

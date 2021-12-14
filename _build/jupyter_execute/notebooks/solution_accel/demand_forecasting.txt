@@ -1,0 +1,505 @@
+%pip install pystan==2.19.1.1
+
+%pip install FBProphet
+
+# # ライブラリのインポート(Databricks Runtimeの際に実行)
+# dbutils.library.installPyPI('FBProphet', version='0.5') # 最新バージョンはこちら: https://pypi.org/project/fbprophet/
+# dbutils.library.installPyPI('holidays','0.9.12') # fbprophet 0.5 のissueへの対応 https://github.com/facebook/prophet/issues/1293
+# dbutils.library.restartPython()
+
+# # Prophet を実行する際に出るメッセージを非表示にするオプション
+# import logging
+# logger = spark._jvm.org.apache.log4j
+# logging.getLogger("py4j").setLevel(logging.ERROR)
+
+import re
+
+# Username を取得。
+username_raw = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+# Username の英数字以外を除去し、全て小文字化。Usernameをファイルパスやデータベース名の一部で使用可能にするため。
+username = re.sub('[^A-Za-z0-9]+', '', username_raw).lower()
+
+# データベース名を生成。
+db_name = f"prophet_spark_demo_{username}"
+
+# データベースの準備
+spark.sql(f"CREATE DATABASE IF NOT EXISTS {db_name}")
+spark.sql(f"USE {db_name}")
+
+print("database name: " + db_name)
+
+# 本ノートブックのSQLがSpark3+で動作するために必要な設定
+spark.conf.set("spark.sql.legacy.timeParserPolicy","LEGACY")
+
+from pyspark.sql.types import *
+
+# 今回利用するデータのスキーマを指定 (型修正オプションで自動読み取りも可能)
+schema = StructType([
+  StructField("date", DateType(), False),
+  StructField("store", IntegerType(), False),
+  StructField("item", IntegerType(), False),
+  StructField("sales", IntegerType(), False)
+])
+
+# FileStore に格納されているCSVを読み込み
+inputDF = spark.read.format("csv")\
+.options(header="true", inferSchema="true")\
+.load("/FileStore/tables/demand_forecast/train/train.csv", schema=schema)
+
+# クエリを発行可能な状態にするために、一時ビューを作成
+inputDF.createOrReplaceTempView('history')
+history = inputDF
+
+# 件数の確認
+history.count()
+
+# 内容の表示
+display(history)
+
+%sql
+SELECT * FROM history
+
+query = """
+SELECT * FROM history
+"""
+display(spark.sql(query))
+
+%sql -- 日付:1826日 > 約5年分のデータ
+SELECT COUNT(DISTINCT date) FROM history
+
+%sql -- store の要素数 > 10 店舗
+SELECT COUNT(DISTINCT store) FROM history
+
+%sql -- item の要素数 > 50 アイテム
+SELECT COUNT(DISTINCT item) FROM history
+
+%sql -- 時系列データの範囲 > 2013-2017年の5年分
+SELECT DISTINCT YEAR(date) AS YEAR FROM history ORDER BY YEAR
+
+%sql
+-- 年毎の集計。店舗全体では年々増加傾向にあることがわかります。
+-- 与えられたデータセットにおいて、週単位や月単位の変動も織り込んだ予測を行うことができれば、精度の高めることが可能となります。
+SELECT 
+  TRUNC(date, 'YYYY') as year,
+  SUM(sales) as sales
+FROM history
+GROUP BY TRUNC(date, 'YYYY')
+ORDER BY year;
+
+%sql
+-- 月ごとのトレンド。月ごとでは単純に増加傾向にはないことがわかります。代わりに、夏を山、冬を谷とした明らかな季節性があることがわかります。
+SELECT 
+  TRUNC(date, 'MM') as month,
+  SUM(sales) as sales
+FROM history
+GROUP BY TRUNC(date, 'MM')
+ORDER BY month;
+
+%sql
+-- 年毎・曜日ごとのトレンド
+-- どの年でも日曜日(weekday 0)にピークとなり、月曜(weekday 1)に売り上げが落ち、徐々に日曜に向けて売上増加していくことがわかります。
+-- このトレンドは5年間の観察期間全体でかなり安定しているように見受けられます。
+
+SELECT -- 年毎で、曜日別売上の平均を算出
+  YEAR(date) as year,
+  CAST(DATE_FORMAT(date, 'u') as Integer) % 7 as weekday, -- 日曜から土曜まで0-6となるように曜日を導出
+  AVG(sales) as sales
+FROM (
+  SELECT -- 日ごとの売り上げで集計したテーブルをサブクエリに指定します
+    date,
+    SUM(sales) as sales
+  FROM history
+  GROUP BY date
+ ) x
+GROUP BY year, CAST(DATE_FORMAT(date, 'u') as Integer) -- 年毎・曜日ごとで集計
+ORDER BY year, weekday;
+
+%sql
+-- 店舗毎・月毎のトレンド
+
+SELECT -- 店舗毎で、月売上の平均を算出
+  MONTH(month) as month,
+  store,
+  AVG(sales) as sales
+FROM (
+  SELECT -- 月ごとの売り上げで集計したテーブルをサブクエリに
+    TRUNC(date, 'MM') as month,
+    store,
+    SUM(sales) as sales
+  FROM history
+  GROUP BY TRUNC(date, 'MM'), store
+  ) x
+GROUP BY MONTH(month), store
+ORDER BY month, store;
+
+%sql select * from history
+
+%sql
+-- アイテム毎・月毎のトレンド
+
+SELECT -- アイテム毎で、月売上の平均を算出
+  MONTH(month) as month,
+  item,
+  AVG(sales) as sales
+FROM (
+  SELECT -- 月ごとの売り上げで集計したテーブルをサブクエリに
+    TRUNC(date, 'MM') as month,
+    item,
+    SUM(sales) as sales
+  FROM history
+  GROUP BY TRUNC(date, 'MM'), item
+  ) x
+GROUP BY MONTH(month), item
+ORDER BY month, item
+
+
+-- コメント！
+
+# モデルの定義
+def define_prophet_model(params):
+  model = Prophet(
+      interval_width=params["interval_width"],
+      growth=params["growth"],
+      daily_seasonality=params["daily_seasonality"],
+      weekly_seasonality=params["weekly_seasonality"],
+      yearly_seasonality=params["yearly_seasonality"],
+      seasonality_mode=params["seasonality_mode"]
+      )
+  return model
+
+# 予測
+def make_predictions(model, number_of_days):
+  return model.make_future_dataframe(periods=number_of_days, freq='d', include_history=True)
+
+from pyspark.sql.functions import to_date, col
+from pyspark.sql.types import IntegerType
+
+# 学習用の pandas df を用意
+# 2015/1/1以降のデータから1%のサンプリングを実施
+history_sample = (
+  history
+  .where(col("date") >= "2015-01-01")
+  .sample(fraction=0.01, seed=123)
+)
+
+history_pd = (
+  history_sample
+  .toPandas()
+  .rename(columns={'date':'ds', 'sales':'y'})[['ds','y']]
+)
+
+
+# fbprophetを利用した場合のメッセージを非表示に
+import logging
+logging.getLogger('py4j').setLevel(logging.ERROR)
+
+# モデルの定義
+from fbprophet import Prophet
+
+params = {
+      "interval_width": 0.95,
+      "growth": "linear", # linear or logistic
+      "daily_seasonality": False,
+      "weekly_seasonality": True,
+      "yearly_seasonality": True,
+      "seasonality_mode": "multiplicative"
+    }
+
+model = define_prophet_model(params)
+
+import pyspark.sql.functions as psf
+
+aggregated_history_sample = (
+  history_sample
+  .select("date", "sales")
+  .groupBy("date")
+  .agg( psf.sum("sales").alias("sales") )
+)
+
+aggregated_history_pd = (
+  aggregated_history_sample
+  .toPandas()
+  .rename(columns={'date':'ds', 'sales':'y'})[['ds','y']]
+)
+
+aggregated_history_pd
+
+# 過去のデータをモデルに学習させる
+model.fit(aggregated_history_pd)
+
+# 過去のデータと先90日間を含むデータフレームを定義
+future_pd = model.make_future_dataframe(
+  periods=90, 
+  freq='d', 
+  include_history=True
+  )
+
+# データセット全体に対して予測実行
+forecast_pd = model.predict(future_pd)
+
+display(forecast_pd)
+
+# それぞれのdataframeのサイズを確認する
+print("history_pd:{} aggregated_history_sample:{} future_pd:{} forecast_pd:{}".format(len(history_pd), len(aggregated_history_pd), len(future_pd), len(forecast_pd)))
+
+trends_fig = model.plot_components(forecast_pd)
+display(trends_fig)
+
+predict_fig = model.plot( forecast_pd, xlabel='date', ylabel='sales')
+
+# 出力されるデータを過去1年と予測期間のみに絞る
+xlim = predict_fig.axes[0].get_xlim()
+new_xlim = ( xlim[1]-(180.0+365.0), xlim[1]-90.0)
+predict_fig.axes[0].set_xlim(new_xlim)
+
+display(predict_fig)
+
+# DatetimeをDateに変換します
+forecast_pd['ds'] = forecast_pd['ds'].dt.date
+
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from math import sqrt
+from datetime import date
+
+# 比較のために過去の実績と予測を取得
+actuals_pd = aggregated_history_pd[ aggregated_history_pd['ds'] < date(2018, 1, 1) ]['y']
+predicted_pd = forecast_pd[ forecast_pd['ds'] < date(2018, 1, 1) ]['yhat']
+
+# 精度指標の計算
+mae = mean_absolute_error(actuals_pd, predicted_pd)
+mse = mean_squared_error(actuals_pd, predicted_pd)
+rmse = sqrt(mse)
+
+print('-----------------------------')
+print( '\n'.join(['MAE: {0}', 'MSE: {1}', 'RMSE: {2}']).format(mae, mse, rmse) )
+
+sql_statement = '''
+  SELECT
+    store,
+    item,
+    date as ds,
+    sales as y
+  FROM
+    history
+  '''
+
+store_item_history = (
+  spark    
+  .sql( sql_statement )
+  .repartition(sc.defaultParallelism, ['store', 'item'])
+).cache()
+
+display(store_item_history)
+
+from pyspark.sql.types import *
+
+result_schema =StructType([
+  StructField('ds',DateType()),
+  StructField('store',IntegerType()),
+  StructField('item',IntegerType()),
+  StructField('y',FloatType()),
+  StructField('yhat',FloatType()),
+  StructField('yhat_upper',FloatType()),
+  StructField('yhat_lower',FloatType())
+  ])
+
+from pyspark.sql.functions import pandas_udf, PandasUDFType
+
+@pandas_udf( result_schema, PandasUDFType.GROUPED_MAP )
+def forecast_store_item( history_pd ):
+  
+  # #1と同じロジックでモデルを作成
+  # --------------------------------------
+  # 欠損値を落とす(サブセットのデータ数によっては欠損値補完する必要あり)
+  history_pd = history_pd.dropna()
+  
+  # モデル作成
+  model = Prophet(
+    interval_width=0.95,
+    growth='linear', # linear or logistic
+    daily_seasonality=False,
+    weekly_seasonality=True,
+    yearly_seasonality=True,
+    seasonality_mode='multiplicative'
+    )
+  
+  # モデル学習
+  model.fit( history_pd )
+  # --------------------------------------
+  
+  # #1と同じロジックで予測
+  # --------------------------------------
+  future_pd = model.make_future_dataframe(
+    periods=90, 
+    freq='d', 
+    include_history=True
+    )
+  forecast_pd = model.predict( future_pd )  
+  # --------------------------------------
+  
+  # サブセットを結合
+  # --------------------------------------
+  # 予測から関連フィールドを取得
+  f_pd = forecast_pd[ ['ds','yhat', 'yhat_upper', 'yhat_lower'] ].set_index('ds')
+  
+  # 履歴から関連するフィールドを取得
+  h_pd = history_pd[['ds','store','item','y']].set_index('ds')
+  
+  # 履歴と予測を結合
+  results_pd = f_pd.join( h_pd, how='left' )
+  results_pd.reset_index(level=0, inplace=True)
+  
+  # データセットから店舗と品番を取得
+  results_pd['store'] = history_pd['store'].iloc[0]
+  results_pd['item'] = history_pd['item'].iloc[0]
+  # --------------------------------------
+  
+  # データセットを返す
+  return results_pd[ ['ds', 'store', 'item', 'y', 'yhat', 'yhat_upper', 'yhat_lower'] ]  
+
+
+
+from pyspark.sql.functions import current_date
+
+results = (
+  store_item_history    
+  .groupBy('store', 'item') # 分割して予測したいカラムを定義
+  .apply(forecast_store_item) # 先のセルで定義した関数を適用 (モデリングと予測)  <===== store, itemでGroupByしたDataframeに対して、上記のUDFを適用し、store, itemごとにprophetモデルを作成、推定している。
+  .withColumn('training_date', current_date() ) # 予測を実行した日付のカラムを追加
+)
+
+results.createOrReplaceTempView('new_forecasts')
+
+%sql
+SELECT * FROM new_forecasts
+
+%sql
+drop table if exists forecasts;
+
+-- create forecast table
+create table if not exists forecasts (
+  date date,
+  store integer,
+  item integer,
+  sales float,
+  sales_predicted float,
+  sales_predicted_upper float,
+  sales_predicted_lower float,
+  training_date date
+  )
+using delta
+partitioned by (training_date);
+
+-- load data to it
+insert into forecasts
+select 
+  ds as date,
+  store,
+  item,
+  y as sales,
+  yhat as sales_predicted,
+  yhat_upper as sales_predicted_upper,
+  yhat_lower as sales_predicted_lower,
+  training_date
+from new_forecasts;
+
+import pandas as pd
+
+# 評価指標のカラム定義
+eval_schema =StructType([
+  StructField('training_date', DateType()),
+  StructField('store', IntegerType()),
+  StructField('item', IntegerType()),
+  StructField('mae', FloatType()),
+  StructField('mse', FloatType()),
+  StructField('rmse', FloatType())
+  ])
+
+# 評価指標の算出
+@pandas_udf( eval_schema, PandasUDFType.GROUPED_MAP )
+def evaluate_forecast( evaluation_pd ):
+  
+  # データセットのストアとアイテムを取得
+  training_date = evaluation_pd['training_date'].iloc[0]
+  store = evaluation_pd['store'].iloc[0]
+  item = evaluation_pd['item'].iloc[0]
+  
+  # 評価指標を算出
+  mae = mean_absolute_error( evaluation_pd['y'], evaluation_pd['yhat'] )
+  mse = mean_squared_error( evaluation_pd['y'], evaluation_pd['yhat'] )
+  rmse = sqrt( mse )
+  
+  # 結果を結合
+  results = {'training_date':[training_date], 'store':[store], 'item':[item], 'mae':[mae], 'mse':[mse], 'rmse':[rmse]}
+  return pd.DataFrame.from_dict( results )
+
+# calculate metrics
+results = (
+  spark
+    .table('new_forecasts')
+    .filter('ds < \'2018-01-01\'') # 評価を履歴データ(正解ラベル)がある期間に制限
+    .select('training_date', 'store', 'item', 'y', 'yhat')
+    .groupBy('training_date', 'store', 'item')
+    .apply(evaluate_forecast)
+    )
+results.createOrReplaceTempView('new_forecast_evals')
+
+%sql
+
+drop table if exists forecast_evals;
+
+create table if not exists forecast_evals (
+  store integer,
+  item integer,
+  mae float,
+  mse float,
+  rmse float,
+  training_date date
+  )
+using delta
+partitioned by (training_date);
+
+insert into forecast_evals
+select
+  store,
+  item,
+  mae,
+  mse,
+  rmse,
+  training_date
+from new_forecast_evals;
+
+%sql select count(*) from forecasts
+
+%sql select * from forecasts where item = 1 and date >= '2018-01-01'  order by date desc limit 30
+
+%sql select current_date() -1 
+
+%sql
+
+SELECT
+  store,
+  date,
+  sales_predicted,
+  sales_predicted_upper,
+  sales_predicted_lower
+FROM forecasts a
+WHERE item = 1 AND
+      -- store IN (1, 2, 3, 4, 5) AND
+      date >= '2018-01-01' AND
+      training_date>=current_date() - 7
+ORDER BY store
+
+%sql
+
+SELECT
+  store,
+  mae,
+  mse,
+  rmse
+FROM forecast_evals a
+WHERE item = 1 AND
+      training_date=current_date()
+ORDER BY store
+
+print( '\n'.join(['MAE: {0}', 'MSE: {1}', 'RMSE: {2}']).format(mae, mse, rmse) )
